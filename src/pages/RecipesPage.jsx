@@ -91,8 +91,8 @@ export default function RecipesPage() {
 
   return (
     <PageFrame
-      title="Bibliotheque"
-      subtitle="Toutes vos recettes preferées, prêtes a être planifiées."
+      title="Bibliothèque"
+      subtitle="Toutes vos recettes préferées, prêtes a être planifiées."
       action={
         <div className="flex items-center gap-2">
           <Link
