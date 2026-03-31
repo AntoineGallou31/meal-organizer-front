@@ -56,13 +56,21 @@ export default function RecipesPage() {
       title="Bibliotheque"
       subtitle="Toutes vos recettes preferées, prêtes a être planifiées."
       action={
-        <Link
-          to="/recipes/import"
-          className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-terracotta-500"
-        >
-          <Plus size={16} />
-          Ajouter
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/recipes/new"
+            className="inline-flex items-center gap-2 rounded-2xl bg-sage-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sage-500"
+          >
+            <Plus size={16} />
+            Créer
+          </Link>
+          <Link
+            to="/recipes/import"
+            className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-terracotta-500"
+          >
+            Importer
+          </Link>
+        </div>
       }
     >
       <label className="mb-4 flex items-center gap-2 rounded-2xl border border-cream-300 bg-white px-3 py-2 dark:border-charcoal-700 dark:bg-charcoal-800">

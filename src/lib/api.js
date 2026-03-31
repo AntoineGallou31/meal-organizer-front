@@ -90,6 +90,17 @@ export const api = {
     return Array.isArray(data) ? data.map(normalizeRecipe) : data
   },
   getRecipeById: async (id) => normalizeRecipe(await apiRequest(`/api/recipes/${id}`)),
+  createRecipe: async (payload) => normalizeRecipe(await apiRequest('/api/recipes', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })),
+  updateRecipe: async (id, payload) => normalizeRecipe(await apiRequest(`/api/recipes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })),
+  deleteRecipe: (id) => apiRequest(`/api/recipes/${id}`, {
+    method: 'DELETE',
+  }),
   importRecipe: (url) =>
     apiRequest('/api/recipes/import', {
       method: 'POST',

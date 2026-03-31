@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Clock3, Users } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, Clock3, Pencil, Trash2, Users } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
 import LoadingState from '../components/LoadingState'
 import PageFrame from '../components/PageFrame'
@@ -10,6 +10,7 @@ import { getUpcomingDays } from '../lib/week'
 
 export default function RecipeDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [plannerOpen, setPlannerOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(getUpcomingDays(1)[0].value)
@@ -25,6 +26,15 @@ export default function RecipeDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
       setPlannerOpen(false)
+    },
+  })
+
+  const deleteRecipeMutation = useMutation({
+    mutationFn: api.deleteRecipe,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
+      navigate('/recipes')
     },
   })
 
@@ -97,8 +107,34 @@ export default function RecipeDetailPage() {
             Ajouter au calendrier
           </button>
 
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              to={`/recipes/${id}/edit`}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sage-300 px-4 py-3 text-sm font-semibold text-sage-800 transition hover:bg-cream-100 dark:border-sage-700 dark:text-cream-200 dark:hover:bg-charcoal-800"
+            >
+              <Pencil size={16} /> Modifier
+            </Link>
+            <button
+              type="button"
+              disabled={deleteRecipeMutation.isPending}
+              onClick={() => {
+                if (!recipe) return
+                const confirmed = window.confirm('Supprimer cette recette ? Cette action est définitive.')
+                if (!confirmed) return
+                deleteRecipeMutation.mutate(recipe.id)
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-300 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/30"
+            >
+              <Trash2 size={16} /> Supprimer
+            </button>
+          </div>
+
           {assignMealMutation.isError ? (
             <p className="text-sm text-red-700 dark:text-red-300">{assignMealMutation.error.message}</p>
+          ) : null}
+
+          {deleteRecipeMutation.isError ? (
+            <p className="text-sm text-red-700 dark:text-red-300">{deleteRecipeMutation.error.message}</p>
           ) : null}
         </article>
       ) : null}
