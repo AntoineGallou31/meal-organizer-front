@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
 import BottomNav from './components/BottomNav'
+import ThemeToggle from './components/ThemeToggle'
 import CalendarPage from './pages/CalendarPage'
 import RecipeFormPage from './pages/RecipeFormPage'
 import ImportRecipePage from './pages/ImportRecipePage'
@@ -24,6 +25,12 @@ function AppLayout() {
       <ScrollToTop />
       <div className="pointer-events-none absolute -left-20 top-8 h-60 w-60 rounded-full bg-sage-200/60 blur-3xl dark:bg-sage-900/40" />
       <div className="pointer-events-none absolute -right-20 top-56 h-72 w-72 rounded-full bg-terracotta-200/50 blur-3xl dark:bg-terracotta-900/20" />
+
+      <div className="relative mx-auto w-full max-w-4xl px-4 pt-4 md:px-6">
+        <div className="flex justify-end">
+          <ThemeToggle />
+        </div>
+      </div>
 
       <main className="relative mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 pb-4 pt-6 md:px-6">
         <Routes>

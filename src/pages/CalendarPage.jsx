@@ -195,7 +195,16 @@ export default function CalendarPage() {
     assignMealMutation.mutate({ date, slot, manualText: normalizedText })
   }
 
-  const handleClearCell = (date, slot) => removeMealMutation.mutate({ date, slot })
+  const handleClearCell = (date, slot) => {
+    const slotLabel = slot === 'lunch' ? 'midi' : 'soir'
+    const confirmed = window.confirm(
+      `Supprimer le repas planifié pour ${dayjs(date).format('dddd DD MMMM')} (${slotLabel}) ?`,
+    )
+    if (!confirmed) {
+      return
+    }
+    removeMealMutation.mutate({ date, slot })
+  }
 
   const handleToggleEdit = (date, slot) => {
     const key = getCellKey(date, slot)
