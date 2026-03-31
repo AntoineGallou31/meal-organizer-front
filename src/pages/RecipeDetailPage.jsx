@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Clock3, Pencil, Trash2, Users } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -8,6 +8,54 @@ import PageFrame from '../components/PageFrame'
 import { api } from '../lib/api'
 import { getUpcomingDays } from '../lib/week'
 
+function parseQuantityToken(token) {
+  const trimmed = token.trim()
+
+  if (/^\d+\s+\d+\/\d+$/.test(trimmed)) {
+    const [whole, fraction] = trimmed.split(/\s+/)
+    const [num, den] = fraction.split('/')
+    const denominator = Number(den)
+    if (!denominator) return null
+    return Number(whole) + Number(num) / denominator
+  }
+
+  if (/^\d+\/\d+$/.test(trimmed)) {
+    const [num, den] = trimmed.split('/')
+    const denominator = Number(den)
+    if (!denominator) return null
+    return Number(num) / denominator
+  }
+
+  const normalized = trimmed.replace(',', '.')
+  const value = Number(normalized)
+  return Number.isFinite(value) ? value : null
+}
+
+function formatScaledQuantity(value) {
+  if (!Number.isFinite(value)) return ''
+  const rounded = Math.round(value * 100) / 100
+  if (Number.isInteger(rounded)) return String(rounded)
+  return String(rounded).replace('.', ',')
+}
+
+function scaleIngredientText(ingredient, ratio) {
+  if (!ingredient || !Number.isFinite(ratio) || ratio <= 0 || ratio === 1) return ingredient
+
+  // Handle common Unicode fractions often found in imported recipes.
+  const normalized = ingredient
+    .replace(/½/g, '1/2')
+    .replace(/⅓/g, '1/3')
+    .replace(/⅔/g, '2/3')
+    .replace(/¼/g, '1/4')
+    .replace(/¾/g, '3/4')
+
+  return normalized.replace(/\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:[.,]\d+)?/g, (match) => {
+    const quantity = parseQuantityToken(match)
+    if (quantity == null) return match
+    return formatScaledQuantity(quantity * ratio)
+  })
+}
+
 export default function RecipeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -15,6 +63,7 @@ export default function RecipeDetailPage() {
   const [plannerOpen, setPlannerOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(getUpcomingDays(1)[0].value)
   const [selectedSlot, setSelectedSlot] = useState('dinner')
+  const [targetServings, setTargetServings] = useState('')
 
   const recipeQuery = useQuery({
     queryKey: ['recipe', id],
@@ -40,6 +89,22 @@ export default function RecipeDetailPage() {
 
   const recipe = recipeQuery.data
   const upcomingDays = getUpcomingDays(14)
+  const baseServings = Number(recipe?.servings)
+  const desiredServings = Number(targetServings)
+  const scalingRatio =
+    Number.isFinite(baseServings) && baseServings > 0 && Number.isFinite(desiredServings) && desiredServings > 0
+      ? desiredServings / baseServings
+      : 1
+
+  const renderedIngredients = (recipe?.ingredients ?? []).map((ingredient) =>
+    scaleIngredientText(ingredient, scalingRatio),
+  )
+
+  useEffect(() => {
+    if (Number.isFinite(baseServings) && baseServings > 0) {
+      setTargetServings(String(baseServings))
+    }
+  }, [baseServings])
 
   return (
     <PageFrame
@@ -77,9 +142,29 @@ export default function RecipeDetailPage() {
           </div>
 
           <section className="rounded-3xl border border-cream-200 bg-white p-4 dark:border-charcoal-700 dark:bg-charcoal-800">
-            <h2 className="font-display text-xl text-sage-900 dark:text-cream-50">Ingredients</h2>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-display text-xl text-sage-900 dark:text-cream-50">Ingredients</h2>
+              {Number.isFinite(baseServings) && baseServings > 0 ? (
+                <label className="flex items-center gap-2 text-sm text-sage-700 dark:text-cream-300">
+                  <span className="font-semibold">Portions</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={targetServings}
+                    onChange={(event) => setTargetServings(event.target.value)}
+                    onFocus={() => {
+                      if (targetServings === '') {
+                        setTargetServings(String(baseServings))
+                      }
+                    }}
+                    className="w-20 rounded-xl border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+                  />
+                </label>
+              ) : null}
+            </div>
             <ul className="mt-3 space-y-2 text-sm text-sage-800 dark:text-cream-200">
-              {(recipe.ingredients ?? []).map((ingredient, index) => (
+              {renderedIngredients.map((ingredient, index) => (
                 <li key={`${ingredient}-${index}`} className="rounded-xl bg-cream-100 px-3 py-2 dark:bg-charcoal-700">
                   {ingredient}
                 </li>
