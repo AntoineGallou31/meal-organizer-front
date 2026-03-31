@@ -1,14 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#f7f1e8"/>
-      <stop offset="100%" stop-color="#e4d1b5"/>
-    </linearGradient>
+    <style>
+      .duo-green { fill: #4CAF50; }
+      .duo-orange { fill: #FF8A65; }
+      .duo-white { fill: white; }
+    </style>
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="162" fill="#738d62"/>
-  <path d="M201 181c19 0 35 16 35 35v120h-38V216c0-19 16-35 35-35h0z" fill="#f7f1e8"/>
-  <path d="M312 181c19 0 35 16 35 35v120h-38V216c0-19 16-35 35-35h0z" fill="#f7f1e8"/>
-  <circle cx="256" cy="288" r="68" fill="#ca6a4e"/>
-  <path d="M225 288h62" stroke="#f7f1e8" stroke-width="20" stroke-linecap="round"/>
+  
+  <!-- Left green circle bump -->
+  <circle cx="60" cy="45" r="18" class="duo-green"/>
+  
+  <!-- Right orange circle bump -->
+  <circle cx="140" cy="45" r="18" class="duo-orange"/>
+  
+  <!-- Left half (green) - main heart shape -->
+  <path class="duo-green" d="M 100 180 C 60 150 30 120 30 80 C 30 60 45 48 60 48 C 72 48 85 56 100 70 L 100 180 Z"/>
+  
+  <!-- Right half (orange) - main heart shape -->
+  <path class="duo-orange" d="M 100 180 C 140 150 170 120 170 80 C 170 60 155 48 140 48 C 128 48 115 56 100 70 L 100 180 Z"/>
+  
+  <!-- Fork - left side white utensils -->
+  <g transform="translate(70, 90)">
+    <!-- Fork handle -->
+    <rect x="-2.5" y="12" width="5" height="22" class="duo-white" rx="2.5"/>
+    <!-- Fork prongs line 1 -->
+    <rect x="-11" y="-10" width="3" height="22" class="duo-white" rx="1.5"/>
+    <!-- Fork prongs line 2 -->
+    <rect x="-2" y="-10" width="3" height="22" class="duo-white" rx="1.5"/>
+    <!-- Fork prongs line 3 -->
+    <rect x="7" y="-10" width="3" height="22" class="duo-white" rx="1.5"/>
+  </g>
+  
+  <!-- Spoon - left side white utensils -->
+  <g transform="translate(60, 75)">
+    <!-- Spoon bowl -->
+    <ellipse cx="0" cy="-7" rx="7" ry="9" class="duo-white"/>
+    <!-- Spoon handle -->
+    <rect x="-2" y="3" width="4" height="24" class="duo-white" rx="2"/>
+  </g>
+  
+  <!-- Number 9 - right side -->
+  <text x="130" y="105" font-size="52" font-weight="700" class="duo-white" text-anchor="middle" dominant-baseline="central" font-family="system-ui, -apple-system, sans-serif">9</text>
 </svg>
