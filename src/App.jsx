@@ -1,13 +1,26 @@
+import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import BottomNav from './components/BottomNav'
 import CalendarPage from './pages/CalendarPage'
 import ImportRecipePage from './pages/ImportRecipePage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 import RecipesPage from './pages/RecipesPage'
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [pathname])
+
+  return null
+}
+
 function AppLayout() {
   return (
     <div className="relative min-h-screen overflow-hidden pb-28">
+      <ScrollToTop />
       <div className="pointer-events-none absolute -left-20 top-8 h-60 w-60 rounded-full bg-sage-200/60 blur-3xl dark:bg-sage-900/40" />
       <div className="pointer-events-none absolute -right-20 top-56 h-72 w-72 rounded-full bg-terracotta-200/50 blur-3xl dark:bg-terracotta-900/20" />
 
