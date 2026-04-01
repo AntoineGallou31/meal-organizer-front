@@ -66,6 +66,26 @@ export default function IncompleteRecipeModal({ recipe, missingFields, onConfirm
           </p>
         </div>
 
+        {/* Link preview: show when sourceUrl is available (useful for external-only imports) */}
+        {editedRecipe?.sourceUrl ? (
+          <div className="mb-4 rounded-xl border border-cream-300 bg-white p-3">
+            <a href={editedRecipe.sourceUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3">
+              {editedRecipe.imageUrl ? (
+                <img src={editedRecipe.imageUrl} alt={editedRecipe.title || 'preview'} className="h-20 w-28 rounded-md object-cover" />
+              ) : (
+                <div className="flex h-20 w-28 items-center justify-center rounded-md bg-sage-100 text-sage-700">
+                  <span className="text-sm">Aperçu</span>
+                </div>
+              )}
+
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-sage-900">{editedRecipe.title || new URL(editedRecipe.sourceUrl).hostname}</p>
+                <p className="text-xs text-sage-600 break-all truncate">{editedRecipe.sourceUrl}</p>
+              </div>
+            </a>
+          </div>
+        ) : null}
+
         <div className="space-y-4 mb-6">
           {/* Title field */}
           {missingFields.includes('title') && (

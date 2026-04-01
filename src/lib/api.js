@@ -165,4 +165,8 @@ export const api = {
     body: JSON.stringify(payload),
   }),
   getImportStatus: (jobId) => apiRequest(`/api/recipes/import-status/${jobId}`),
+  cancelImport: (jobId) => apiRequest('/api/recipes/import-cancel', {
+    method: 'POST',
+    body: JSON.stringify({ jobId }),
+  }),
 }
