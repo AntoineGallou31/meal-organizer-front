@@ -105,7 +105,7 @@ export default function RecipeFormPage() {
       action={
         <Link
           to={isEdit ? `/recipes/${id}` : '/recipes'}
-          className="inline-flex items-center gap-2 rounded-xl border border-sage-300 px-3 py-2 text-xs font-semibold text-sage-700 transition hover:bg-cream-100 dark:border-sage-700 dark:text-cream-300 dark:hover:bg-charcoal-800"
+          className="inline-flex items-center gap-2 rounded-xl border border-sage-300 px-3 py-2 text-xs font-semibold text-sage-700 transition hover:bg-cream-100"
         >
           <ArrowLeft size={14} /> Retour
         </Link>
@@ -119,81 +119,81 @@ export default function RecipeFormPage() {
       {(!isEdit || recipeQuery.data) ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800 dark:text-cream-200">Titre</span>
+            <span className="text-sm font-semibold text-sage-800">Titre</span>
             <input
               type="text"
               name="title"
               required
               defaultValue={defaultValues.title}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
-              <span className="text-sm font-semibold text-sage-800 dark:text-cream-200">Temps (min)</span>
+              <span className="text-sm font-semibold text-sage-800">Temps (min)</span>
               <input
                 type="number"
                 name="prepTime"
                 min="1"
                 defaultValue={defaultValues.prepTime}
-                className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+                className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
               />
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-semibold text-sage-800 dark:text-cream-200">Portions</span>
+              <span className="text-sm font-semibold text-sage-800">Portions</span>
               <input
                 type="number"
                 name="servings"
                 min="1"
                 defaultValue={defaultValues.servings}
-                className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+                className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
               />
             </label>
           </div>
 
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800 dark:text-cream-200">URL image</span>
+            <span className="text-sm font-semibold text-sage-800">URL image</span>
             <input
               type="url"
               name="imageUrl"
               placeholder="https://..."
               defaultValue={defaultValues.imageUrl}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800 dark:text-cream-200">URL source (optionnel)</span>
+            <span className="text-sm font-semibold text-sage-800">URL source (optionnel)</span>
             <input
               type="url"
               name="sourceUrl"
               placeholder="https://..."
               defaultValue={defaultValues.sourceUrl}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800 dark:text-cream-200">Ingrédients (1 ligne = 1 ingrédient)</span>
+            <span className="text-sm font-semibold text-sage-800">Ingrédients (1 ligne = 1 ingrédient)</span>
             <textarea
               name="ingredientsText"
               required
               rows={6}
               defaultValue={defaultValues.ingredientsText}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800 dark:text-cream-200">Étapes (1 ligne = 1 étape)</span>
+            <span className="text-sm font-semibold text-sage-800">Étapes (1 ligne = 1 étape)</span>
             <textarea
               name="stepsText"
               required
               rows={8}
               defaultValue={defaultValues.stepsText}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-cream-100"
+              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
           </label>
 
@@ -209,7 +209,7 @@ export default function RecipeFormPage() {
       ) : null}
 
       {saveMutation.isError ? (
-        <p className="mt-4 text-sm text-red-700 dark:text-red-300">{saveMutation.error.message}</p>
+        <p className="mt-4 text-sm text-red-700">{saveMutation.error.message}</p>
       ) : null}
     </PageFrame>
   )

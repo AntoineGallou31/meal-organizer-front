@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Edit2, Check, X } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useNavigate } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
@@ -8,7 +8,7 @@ import LoadingState from '../components/LoadingState'
 import PageFrame from '../components/PageFrame'
 import RecipePickerSheet from '../components/RecipePickerSheet'
 import { api } from '../lib/api'
-import { getWeekDays, getWeekKey } from '../lib/week'
+import { getWeekDays, getWeekKey, formatWeekLabel } from '../lib/week'
 
 function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveManualNote, onEditManual, isEditing }) {
   const [editText, setEditText] = useState(manualNote || '')
@@ -16,7 +16,7 @@ function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveMan
   if (isEditing) {
     return (
       <div className="flex items-center gap-2">
-        <p className="w-10 text-sm font-semibold text-charcoal-500 dark:text-cream-500">
+        <p className="w-10 text-sm font-semibold text-charcoal-500">
           {label}
         </p>
         <div className="flex w-full items-center gap-2">
@@ -25,20 +25,20 @@ function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveMan
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             placeholder="Entrez un plat..."
-            className="w-full rounded-2xl border border-sage-300 bg-white px-3 py-3 text-sm dark:border-sage-700 dark:bg-charcoal-800"
+            className="w-full rounded-2xl border border-sage-300 bg-white px-3 py-3 text-sm"
             autoFocus
           />
           <button
             type="button"
             onClick={() => onSaveManualNote(editText)}
-            className="rounded-full bg-green-500 p-2 text-white hover:bg-green-600 dark:bg-green-700 dark:hover:bg-green-800"
+            className="rounded-full bg-green-500 p-2 text-white hover:bg-green-600"
           >
             <Check size={16} />
           </button>
           <button
             type="button"
             onClick={onEditManual}
-            className="rounded-full bg-gray-300 p-2 text-charcoal-800 hover:bg-gray-400 dark:bg-charcoal-700 dark:text-cream-200 dark:hover:bg-charcoal-600"
+            className="rounded-full bg-gray-300 p-2 text-charcoal-800 hover:bg-gray-400"
           >
             <X size={16} />
           </button>
@@ -50,13 +50,13 @@ function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveMan
   if (!recipe && !manualNote) {
     return (
       <div className="flex items-center gap-2">
-        <p className="w-10 text-sm font-semibold text-charcoal-500 dark:text-cream-500">
+        <p className="w-10 text-sm font-semibold text-charcoal-500">
           {label}
         </p>
         <div className="flex w-full gap-2">
           <button
             type="button"
-            className="flex flex-1 min-h-16 items-center justify-center rounded-2xl border border-dashed border-sage-300 bg-cream-100/50 px-2 py-3 text-sage-700 transition hover:border-sage-500 hover:bg-cream-100 dark:border-sage-700 dark:bg-charcoal-800 dark:text-cream-300"
+            className="flex flex-1 min-h-16 items-center justify-center rounded-2xl border border-dashed border-sage-300 bg-cream-100/50 px-2 py-3 text-sage-700 transition hover:border-sage-500 hover:bg-cream-100"
             onClick={onEditManual}
           >
             <span className="flex items-center gap-2 text-sm font-medium">
@@ -66,7 +66,7 @@ function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveMan
           </button>
           <button
             type="button"
-            className="group flex flex-1 min-h-16 items-center justify-center rounded-2xl border border-dashed border-sage-300 bg-cream-100/50 px-2 py-3 text-sage-700 transition hover:border-sage-500 hover:bg-cream-100 dark:border-sage-700 dark:bg-charcoal-800 dark:text-cream-300"
+            className="group flex flex-1 min-h-16 items-center justify-center rounded-2xl border border-dashed border-sage-300 bg-cream-100/50 px-2 py-3 text-sage-700 transition hover:border-sage-500 hover:bg-cream-100"
             onClick={onAdd}
           >
             <span className="flex items-center gap-2 text-sm font-medium">
@@ -82,23 +82,23 @@ function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveMan
   if (recipe) {
     return (
       <div className="flex items-center gap-2">
-        <p className="w-10 text-sm font-semibold text-charcoal-500 dark:text-cream-500">
+        <p className="w-10 text-sm font-semibold text-charcoal-500">
           {label}
         </p>
         <div className="relative w-full">
           <button
             type="button"
-            className="w-full rounded-2xl border border-terracotta-200 bg-terracotta-50 px-3 py-3 text-left transition hover:border-terracotta-400 dark:border-terracotta-800 dark:bg-terracotta-900/30"
+            className="w-full rounded-2xl border border-terracotta-200 bg-terracotta-50 px-3 py-3 text-left transition hover:border-terracotta-400"
             onClick={onOpen}
           >
-            <p className="line-clamp-2 text-sm font-semibold text-terracotta-900 dark:text-terracotta-100">
+            <p className="line-clamp-2 text-sm font-semibold text-terracotta-900">
               {recipe.title}
             </p>
           </button>
           <button
             type="button"
             aria-label="Supprimer"
-            className="absolute right-2 top-2 rounded-full bg-white/85 p-1 text-terracotta-700 shadow hover:bg-white dark:bg-charcoal-800 dark:text-terracotta-200"
+            className="absolute right-2 top-2 rounded-full bg-white/85 p-1 text-terracotta-700 shadow hover:bg-white"
             onClick={onClear}
           >
             <Trash2 size={12} />
@@ -111,23 +111,23 @@ function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveMan
   if (manualNote) {
     return (
       <div className="flex items-center gap-2">
-        <p className="w-10 text-sm font-semibold text-charcoal-500 dark:text-cream-500">
+        <p className="w-10 text-sm font-semibold text-charcoal-500">
           {label}
         </p>
         <div className="relative w-full">
           <button
             type="button"
-            className="w-full rounded-2xl border border-blue-200 bg-blue-50 px-3 py-3 text-left transition hover:border-blue-400 dark:border-blue-800 dark:bg-blue-900/30"
+            className="w-full rounded-2xl border border-blue-200 bg-blue-50 px-3 py-3 text-left transition hover:border-blue-400"
             onClick={onEditManual}
           >
-            <p className="line-clamp-2 text-sm font-semibold text-blue-900 dark:text-blue-100">
+            <p className="line-clamp-2 text-sm font-semibold text-blue-900">
               {manualNote}
             </p>
           </button>
           <button
             type="button"
             aria-label="Supprimer"
-            className="absolute right-2 top-2 rounded-full bg-white/85 p-1 text-blue-700 shadow hover:bg-white dark:bg-charcoal-800 dark:text-blue-200"
+            className="absolute right-2 top-2 rounded-full bg-white/85 p-1 text-blue-700 shadow hover:bg-white"
             onClick={onClear}
           >
             <Trash2 size={12} />
@@ -182,7 +182,19 @@ export default function CalendarPage() {
     return list.length ? list : getWeekDays(currentWeek)
   }, [mealPlanQuery.data, currentWeek])
 
-  const subtitle = dayjs().format('MMMM YYYY')
+  const subtitle = formatWeekLabel(currentWeek)
+
+  const goToPreviousWeek = () => {
+    setCurrentWeek((prev) => prev.subtract(1, 'week'))
+  }
+
+  const goToNextWeek = () => {
+    setCurrentWeek((prev) => prev.add(1, 'week'))
+  }
+
+  const goToToday = () => {
+    setCurrentWeek(dayjs())
+  }
 
   const getCellKey = (date, slot) => `${date}-${slot}`
 
@@ -216,11 +228,41 @@ export default function CalendarPage() {
   }
 
   return (
-    <PageFrame title="Plan des repas" subtitle={subtitle}>
+    <PageFrame 
+      title="Plan des repas" 
+      subtitle={subtitle}
+      action={
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={goToPreviousWeek}
+            className="inline-flex items-center justify-center rounded-xl border border-sage-300 p-2 text-sage-700 transition hover:bg-cream-100"
+            title="Semaine précédente"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={goToToday}
+            className="rounded-xl border border-sage-300 px-3 py-2 text-xs font-semibold text-sage-700 transition hover:bg-cream-100"
+          >
+            Aujourd'hui
+          </button>
+          <button
+            type="button"
+            onClick={goToNextWeek}
+            className="inline-flex items-center justify-center rounded-xl border border-sage-300 p-2 text-sage-700 transition hover:bg-cream-100"
+            title="Semaine suivante"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      }
+    >
       {mealPlanQuery.isLoading ? <LoadingState /> : null}
       {mealPlanQuery.isError ? <ErrorState /> : null}
       {mealPlanQuery.data ? (
-        <div className="divide-y divide-sage-200 dark:divide-sage-800">
+        <div className="divide-y divide-sage-200">
           {days.map(day => {
             const lunchKey = getCellKey(day.date, 'lunch')
             const dinnerKey = getCellKey(day.date, 'dinner')
@@ -229,7 +271,7 @@ export default function CalendarPage() {
                 key={day.date}
                  className="flex flex-col gap-4 py-4"
               >
-                 <h2 className="font-bold capitalize text-charcoal-800 dark:text-cream-100">
+                 <h2 className="font-bold capitalize text-charcoal-800">
                   {dayjs(day.date).format('dddd DD MMMM')}
                 </h2>
                 <div className="flex flex-col gap-4">
@@ -265,11 +307,11 @@ export default function CalendarPage() {
       ) : null}
 
       {assignMealMutation.isError ? (
-        <p className="mt-3 text-sm text-red-700 dark:text-red-300">{assignMealMutation.error.message}</p>
+        <p className="mt-3 text-sm text-red-700">{assignMealMutation.error.message}</p>
       ) : null}
 
       {removeMealMutation.isError ? (
-        <p className="mt-3 text-sm text-red-700 dark:text-red-300">{removeMealMutation.error.message}</p>
+        <p className="mt-3 text-sm text-red-700">{removeMealMutation.error.message}</p>
       ) : null}
 
       <RecipePickerSheet

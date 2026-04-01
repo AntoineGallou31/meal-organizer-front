@@ -32,7 +32,7 @@ export default function ThemeToggle() {
       aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre'}
       title={isDark ? 'Thème clair' : 'Thème sombre'}
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="inline-flex items-center gap-2 rounded-2xl border border-cream-300 bg-white/90 px-3 py-2 text-xs font-semibold text-sage-800 shadow-soft transition hover:bg-cream-100 dark:border-charcoal-700 dark:bg-charcoal-800/90 dark:text-cream-100 dark:hover:bg-charcoal-700"
+      className="inline-flex items-center gap-2 rounded-2xl border border-cream-300 bg-white/90 px-3 py-2 text-xs font-semibold text-sage-800 shadow-soft transition hover:bg-cream-100"
     >
       {isDark ? <Sun size={16} /> : <Moon size={16} />}
       <span>{isDark ? 'Clair' : 'Sombre'}</span>

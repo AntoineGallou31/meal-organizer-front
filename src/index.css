@@ -9,16 +9,12 @@
     color-scheme: light;
   }
 
-  :root.dark {
-    color-scheme: dark;
-  }
-
   * {
     @apply box-border;
   }
 
   body {
-    @apply m-0 min-h-screen bg-cream-50 font-sans text-sage-900 antialiased dark:bg-charcoal-950 dark:text-cream-100;
+    @apply m-0 min-h-screen bg-cream-50 font-sans text-sage-900 antialiased;
     background-image: radial-gradient(circle at 10% -20%, rgba(194, 176, 151, 0.4), transparent 40%), radial-gradient(circle at 90% 10%, rgba(115, 141, 98, 0.2), transparent 35%);
   }
 

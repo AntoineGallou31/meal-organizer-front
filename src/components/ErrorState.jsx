@@ -2,7 +2,7 @@ import { AlertCircle } from 'lucide-react'
 
 export default function ErrorState({ message, onRetry }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
       <div className="flex items-center gap-2">
         <AlertCircle size={18} />
         <p className="text-sm font-semibold">{message ?? 'Une erreur est survenue.'}</p>

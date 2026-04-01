@@ -11,6 +11,7 @@ function normalizeRecipe(recipe) {
     prepTime: recipe.prepTime ?? recipe.prep_time ?? null,
     sourceUrl: recipe.sourceUrl ?? recipe.source_url ?? null,
     createdAt: recipe.createdAt ?? recipe.created_at ?? null,
+    type: recipe.type ?? null,
   }
 }
 
@@ -101,9 +102,10 @@ export const api = {
   deleteRecipe: (id) => apiRequest(`/api/recipes/${id}`, {
     method: 'DELETE',
   }),
-  importRecipe: (url) =>
-    apiRequest('/api/recipes/import', {
+  importRecipe: async (url) => {
+    const result = await apiRequest('/api/recipes/import', {
       method: 'POST',
       body: JSON.stringify({ url }),
-    }),
-}
+    })
+    return normalizeRecipe(result)
+  },
