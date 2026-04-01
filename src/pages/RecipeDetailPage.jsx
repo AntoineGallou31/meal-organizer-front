@@ -139,6 +139,20 @@ export default function RecipeDetailPage() {
               <span className="inline-flex items-center gap-2"><Clock3 size={15} /> {recipe.prepTime ? `${recipe.prepTime} min` : 'Temps inconnu'}</span>
               <span className="inline-flex items-center gap-2"><Users size={15} /> {recipe.servings ?? '-'} personnes</span>
             </div>
+
+            {(recipe.categories ?? []).length > 0 ? (
+              <div className="flex flex-wrap gap-2 px-4 pb-4">
+                {recipe.categories.map((category) => (
+                  <span
+                    key={category.id}
+                    className="rounded-full px-3 py-1 text-xs font-semibold text-sage-900"
+                    style={{ backgroundColor: category.color || '#e5e7eb' }}
+                  >
+                    {category.name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <section className="rounded-3xl border border-cream-200 bg-white p-4">
@@ -164,23 +178,61 @@ export default function RecipeDetailPage() {
               ) : null}
             </div>
             <ul className="mt-3 space-y-2 text-sm text-sage-800">
-              {renderedIngredients.map((ingredient, index) => (
-                <li key={`${ingredient}-${index}`} className="rounded-xl bg-cream-100 px-3 py-2">
-                  {ingredient}
+              {renderedIngredients.length > 0 ? (
+                renderedIngredients.map((ingredient, index) => (
+                  <li key={`${ingredient}-${index}`} className="rounded-xl bg-cream-100 px-3 py-2">
+                    {ingredient}
+                  </li>
+                ))
+              ) : (
+                <li className="rounded-xl bg-cream-100 px-3 py-2">
+                  Ingrédients indisponibles.
+                  {recipe.sourceUrl ? (
+                    <>
+                      {' '}
+                      <a
+                        href={recipe.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                      >
+                        Voir la recette originale
+                      </a>
+                    </>
+                  ) : null}
                 </li>
-              ))}
+              )}
             </ul>
           </section>
 
           <section className="rounded-3xl border border-cream-200 bg-white p-4">
             <h2 className="font-display text-xl text-sage-900">Preparation</h2>
             <ol className="mt-3 space-y-2 text-sm text-sage-800">
-              {(recipe.steps ?? []).map((step, index) => (
-                <li key={`${step}-${index}`} className="rounded-xl bg-cream-100 px-3 py-2">
-                  <span className="font-semibold">{index + 1}. </span>
-                  {step}
+              {(recipe.steps ?? []).length > 0 ? (
+                (recipe.steps ?? []).map((step, index) => (
+                  <li key={`${step}-${index}`} className="rounded-xl bg-cream-100 px-3 py-2">
+                    <span className="font-semibold">{index + 1}. </span>
+                    {step}
+                  </li>
+                ))
+              ) : (
+                <li className="rounded-xl bg-cream-100 px-3 py-2">
+                  Etapes de preparation indisponibles.
+                  {recipe.sourceUrl ? (
+                    <>
+                      {' '}
+                      <a
+                        href={recipe.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                      >
+                        Voir la recette originale
+                      </a>
+                    </>
+                  ) : null}
                 </li>
-              ))}
+              )}
             </ol>
           </section>
 
@@ -220,6 +272,23 @@ export default function RecipeDetailPage() {
 
           {deleteRecipeMutation.isError ? (
             <p className="text-sm text-red-700">{deleteRecipeMutation.error.message}</p>
+          ) : null}
+
+          {(recipe.similarRecipes ?? []).length > 0 ? (
+            <section className="rounded-3xl border border-cream-200 bg-white p-4">
+              <h2 className="font-display text-xl text-sage-900">Recettes similaires</h2>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {recipe.similarRecipes.map((similarRecipe) => (
+                  <Link
+                    key={similarRecipe.id}
+                    to={`/recipes/${similarRecipe.id}`}
+                    className="rounded-xl border border-cream-200 bg-cream-100 px-3 py-2 text-sm text-sage-800 transition hover:border-sage-300"
+                  >
+                    {similarRecipe.title}
+                  </Link>
+                ))}
+              </div>
+            </section>
           ) : null}
         </article>
       ) : null}

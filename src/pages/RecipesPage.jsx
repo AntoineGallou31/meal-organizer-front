@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
 import LoadingState from '../components/LoadingState'
 import PageFrame from '../components/PageFrame'
 import { api } from '../lib/api'
-import { MEAL_TYPES, SEASONS, getIngredientsSeasons } from '../lib/seasonality'
+import { SEASONS } from '../lib/seasonality'
 
 function RecipeCard({ recipe, onDelete, isDeleting }) {
   return (
@@ -46,6 +46,11 @@ function RecipeCard({ recipe, onDelete, isDeleting }) {
 
       <Link to={`/recipes/${recipe.id}`} className="block space-y-1 p-4">
         <h3 className="line-clamp-2 font-semibold text-sage-900">{recipe.title}</h3>
+        {recipe.externalOnly ? (
+          <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+            Recette externe
+          </span>
+        ) : null}
         <p className="text-sm text-sage-700">
           {recipe.prepTime ? `${recipe.prepTime} min` : 'Temps non précisé'}
         </p>
@@ -56,9 +61,11 @@ function RecipeCard({ recipe, onDelete, isDeleting }) {
 
 export default function RecipesPage() {
   const [search, setSearch] = useState('')
-  const [selectedTypes, setSelectedTypes] = useState([])
-  const [selectedSeasons, setSelectedSeasons] = useState([])
-  const [selectedIngredients, setSelectedIngredients] = useState('')
+  const [selectedCategoryId, setSelectedCategoryId] = useState('')
+  const [selectedSeason, setSelectedSeason] = useState('')
+  const [ingredient, setIngredient] = useState('')
+  const [prepMax, setPrepMax] = useState('')
+  const [sort, setSort] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
   const queryClient = useQueryClient()
 
@@ -70,61 +77,26 @@ export default function RecipesPage() {
     },
   })
 
-  const recipesQuery = useQuery({
-    queryKey: ['recipes'],
-    queryFn: api.getRecipes,
+  const categoriesQuery = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(true),
   })
 
-  // Get all unique ingredients from recipes for autocomplete
-  const allIngredients = useMemo(() => {
-    const ingredientsSet = new Set()
-    recipesQuery.data?.forEach((recipe) => {
-      recipe.ingredients?.forEach((ing) => {
-        ingredientsSet.add(ing.toLowerCase().trim())
-      })
-    })
-    return Array.from(ingredientsSet).sort()
-  }, [recipesQuery.data])
+  const recipeFilters = useMemo(() => ({
+    search,
+    categoryId: selectedCategoryId,
+    ingredient,
+    season: selectedSeason,
+    prepMax,
+    sort,
+  }), [search, selectedCategoryId, ingredient, selectedSeason, prepMax, sort])
 
-  const filteredRecipes = useMemo(() => {
-    let result = recipesQuery.data ?? []
-    const normalizedSearch = search.trim().toLowerCase()
+  const recipesQuery = useQuery({
+    queryKey: ['recipes', recipeFilters],
+    queryFn: () => api.getRecipes(recipeFilters),
+  })
 
-    // Filter by search
-    if (normalizedSearch) {
-      result = result.filter((recipe) => recipe.title.toLowerCase().includes(normalizedSearch))
-    }
-
-    // Filter by type
-    if (selectedTypes.length > 0) {
-      result = result.filter((recipe) => selectedTypes.includes(recipe.type))
-    }
-
-    // Filter by ingredients
-    if (selectedIngredients.trim()) {
-      const selectedIngs = selectedIngredients
-        .split(',')
-        .map((ing) => ing.trim().toLowerCase())
-        .filter(Boolean)
-
-      result = result.filter((recipe) => {
-        const recipeIngs = recipe.ingredients?.map((ing) => ing.toLowerCase().trim()) ?? []
-        return selectedIngs.every((selectedIng) =>
-          recipeIngs.some((recipeIng) => recipeIng.includes(selectedIng) || selectedIng.includes(recipeIng))
-        )
-      })
-    }
-
-    // Filter by seasons
-    if (selectedSeasons.length > 0) {
-      result = result.filter((recipe) => {
-        const recipeSeasons = getIngredientsSeasons(recipe.ingredients ?? [])
-        return selectedSeasons.some((season) => recipeSeasons.includes(season))
-      })
-    }
-
-    return result
-  }, [recipesQuery.data, search, selectedTypes, selectedSeasons, selectedIngredients])
+  const filteredRecipes = recipesQuery.data ?? []
 
   const handleDeleteRecipe = (recipe) => {
     const confirmed = window.confirm(`Supprimer la recette "${recipe.title}" ? Cette action est définitive.`)
@@ -134,24 +106,21 @@ export default function RecipesPage() {
     deleteRecipeMutation.mutate(recipe.id)
   }
 
-  const toggleType = (typeId) => {
-    setSelectedTypes((prev) => (prev.includes(typeId) ? prev.filter((t) => t !== typeId) : [...prev, typeId]))
-  }
-
-  const toggleSeason = (seasonId) => {
-    setSelectedSeasons((prev) =>
-      prev.includes(seasonId) ? prev.filter((s) => s !== seasonId) : [...prev, seasonId]
-    )
-  }
-
   const clearFilters = () => {
     setSearch('')
-    setSelectedTypes([])
-    setSelectedSeasons([])
-    setSelectedIngredients('')
+    setSelectedCategoryId('')
+    setSelectedSeason('')
+    setIngredient('')
+    setPrepMax('')
+    setSort('newest')
   }
 
-  const hasActiveFilters = selectedTypes.length > 0 || selectedSeasons.length > 0 || selectedIngredients.trim() !== ''
+  const hasActiveFilters =
+    selectedCategoryId !== '' ||
+    selectedSeason !== '' ||
+    ingredient.trim() !== '' ||
+    prepMax.trim() !== '' ||
+    sort !== 'newest'
 
   return (
     <PageFrame
@@ -205,90 +174,73 @@ export default function RecipesPage() {
         <div className="mb-4 space-y-4 rounded-2xl border border-cream-200 bg-cream-50 p-4">
           {/* Type filter */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-sage-800">Type de plat</h3>
-            <div className="flex flex-wrap gap-2">
-              {MEAL_TYPES.map((mealType) => (
-                <button
-                  key={mealType.id}
-                  type="button"
-                  onClick={() => toggleType(mealType.id)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                    selectedTypes.includes(mealType.id)
-                      ? 'bg-sage-600 text-white'
-                      : 'border border-sage-300 bg-white text-sage-700 hover:border-sage-400'
-                  }`}
-                >
-                  {mealType.label}
-                </button>
+            <h3 className="text-sm font-semibold text-sage-800">Categorie</h3>
+            <select
+              value={selectedCategoryId}
+              onChange={(event) => setSelectedCategoryId(event.target.value)}
+              className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
+            >
+              <option value="">Toutes les categories</option>
+              {(categoriesQuery.data ?? []).map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Season filter */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-sage-800">Saisonnalité</h3>
-            <div className="flex flex-wrap gap-2">
+            <select
+              value={selectedSeason}
+              onChange={(event) => setSelectedSeason(event.target.value)}
+              className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
+            >
+              <option value="">Toutes saisons</option>
               {SEASONS.map((season) => (
-                <button
-                  key={season.id}
-                  type="button"
-                  onClick={() => toggleSeason(season.value)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                    selectedSeasons.includes(season.value)
-                      ? 'bg-blue-600 text-white'
-                      : 'border border-blue-300 bg-white text-blue-700 hover:border-blue-400'
-                  }`}
-                >
+                <option key={season.id} value={season.value}>
                   {season.label}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Ingredient filter */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-sage-800">Ingrédients</h3>
+            <h3 className="text-sm font-semibold text-sage-800">Ingredient</h3>
             <input
               type="text"
-              placeholder="Entrez les ingrédients séparés par des virgules (ex: tomate, fromage)"
-              value={selectedIngredients}
-              onChange={(e) => setSelectedIngredients(e.target.value)}
+              placeholder="Ex: tomate"
+              value={ingredient}
+              onChange={(e) => setIngredient(e.target.value)}
               className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
-              list="ingredients-list"
             />
-            <datalist id="ingredients-list">
-              {allIngredients.map((ing) => (
-                <option key={ing} value={ing} />
-              ))}
-            </datalist>
-            {selectedIngredients && (
-              <div className="flex flex-wrap gap-2">
-                {selectedIngredients
-                  .split(',')
-                  .map((ing) => ing.trim())
-                  .filter(Boolean)
-                  .map((ing) => (
-                    <span key={ing} className="inline-flex items-center gap-1 rounded-full bg-sage-200 px-2 py-1 text-xs text-sage-800">
-                      {ing}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedIngredients(
-                            selectedIngredients
-                              .split(',')
-                              .map((i) => i.trim())
-                              .filter((i) => i !== ing)
-                              .join(', ')
-                          )
-                        }
-                        className="hover:text-sage-900"
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
-              </div>
-            )}
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-sage-800">Temps max (min)</h3>
+            <input
+              type="number"
+              min="1"
+              value={prepMax}
+              onChange={(event) => setPrepMax(event.target.value)}
+              placeholder="Ex: 30"
+              className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-sage-800">Tri</h3>
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value)}
+              className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
+            >
+              <option value="newest">Plus recentes</option>
+              <option value="oldest">Plus anciennes</option>
+              <option value="prepTime">Temps de preparation</option>
+            </select>
           </div>
 
           {/* Clear filters button */}
@@ -305,6 +257,9 @@ export default function RecipesPage() {
       )}
 
       {recipesQuery.isLoading ? <LoadingState label="Chargement des recettes..." /> : null}
+      {categoriesQuery.isError ? (
+        <p className="mb-4 text-sm text-red-700">{categoriesQuery.error.message}</p>
+      ) : null}
       {recipesQuery.isError ? (
         <ErrorState message={recipesQuery.error.message} onRetry={recipesQuery.refetch} />
       ) : null}
