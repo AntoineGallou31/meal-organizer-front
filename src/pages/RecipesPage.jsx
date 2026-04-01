@@ -55,6 +55,7 @@ function RecipeCard({ recipe, onDelete, isDeleting }) {
 }
 
 export default function RecipesPage() {
+  const [search, setSearch] = useState('')
   const [selectedTypes, setSelectedTypes] = useState([])
   const [selectedSeasons, setSelectedSeasons] = useState([])
   const [selectedIngredients, setSelectedIngredients] = useState('')
@@ -326,7 +327,6 @@ export default function RecipesPage() {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-sage-300 bg-cream-100/70 p-4 text-center text-sm text-sage-700">
-            Aucune recette ne correspond à votreborder-dashed border-sage-300 bg-cream-100/70 p-4 text-center text-sm text-sage-700">
             Aucune recette ne correspond à la recherche.
           </div>
         )

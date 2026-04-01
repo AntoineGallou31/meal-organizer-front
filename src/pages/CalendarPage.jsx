@@ -143,7 +143,7 @@ function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveMan
 export default function CalendarPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [currentWeek] = useState(dayjs())
+  const [currentWeek, setCurrentWeek] = useState(dayjs())
   const [selection, setSelection] = useState(null)
   const [editingCell, setEditingCell] = useState(null)
 
