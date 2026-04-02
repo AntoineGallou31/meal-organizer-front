@@ -3,53 +3,56 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, LoaderCircle } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import PageFrame from '../components/PageFrame'
-import IncompleteRecipeModal from '../components/IncompleteRecipeModal'
 import { api } from '../lib/api'
 
 function extractUrlsFromText(text) {
   if (!text || typeof text !== 'string') return []
-  
-  // Try to parse as Pinterest HTML export first
+
   if (text.includes('Board Name:') && text.includes('Canonical Link:')) {
     const canonicalUrls = []
-    
-    // Split by pin blocks - each block starts with a Pinterest URL
     const pinBlocks = text.split(/https:\/\/www\.pinterest\.com\/pin\/\d+\//)
-    
-    for (let i = 1; i < pinBlocks.length; i++) {
+
+    for (let i = 1; i < pinBlocks.length; i += 1) {
       const block = pinBlocks[i]
-      
-      // Extract Board Name from this block
-      const boardNameMatch = block.match(/Board Name:\s*([^<\n]+)/);
+      const boardNameMatch = block.match(/Board Name:\s*([^<\n]+)/)
       const boardName = boardNameMatch ? boardNameMatch[1].trim() : ''
-      
-      // Only process if Board Name is "Recettes"
+
       if (boardName !== 'Recettes') {
         continue
       }
-      
-      // Extract Canonical Link from this block
+
       const canonicalMatch = block.match(/Canonical Link:\s*<a\s+href="([^"]+)"/)
       const url = canonicalMatch ? canonicalMatch[1] : null
-      
-      // Only add valid recipe URLs (not "No data")
+
       if (url && url.startsWith('http') && !url.includes('pinterest.com')) {
         canonicalUrls.push(url)
       }
     }
-    
-    // If we found canonical links, return them
+
     if (canonicalUrls.length > 0) {
       return [...new Set(canonicalUrls)]
     }
   }
-  
-  // Fallback: extract all URLs
+
   const matches = text.match(/https?:\/\/[^\s"'<>]+/g) || []
   const urls = [...new Set(matches.map((url) => url.trim()).filter(Boolean))]
-  
-  // Filter out Pinterest URLs from fallback extraction
-  return urls.filter(url => !url.includes('pinterest.com'))
+
+  return urls.filter((url) => !url.includes('pinterest.com'))
+}
+
+function formatMissingFieldLabel(field) {
+  switch (field) {
+    case 'title':
+      return 'Titre'
+    case 'image':
+      return 'Photo'
+    case 'ingredients':
+      return 'Ingrédients'
+    case 'steps':
+      return 'Préparation'
+    default:
+      return field
+  }
 }
 
 export default function ImportRecipePage() {
@@ -59,8 +62,6 @@ export default function ImportRecipePage() {
   const [extractedUrls, setExtractedUrls] = useState([])
   const [importJob, setImportJob] = useState(null)
   const [importStatus, setImportStatus] = useState(null)
-  const [incompleteRecipe, setIncompleteRecipe] = useState(null)
-  const [missingFields, setMissingFields] = useState([])
   const [titleVerificationPrompt, setTitleVerificationPrompt] = useState(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -71,39 +72,12 @@ export default function ImportRecipePage() {
     onSuccess: (recipe) => {
       setTitleVerificationPrompt(null)
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      
-      // If recipe is incomplete (missing many fields) show editor modal
-      if (recipe.incomplete) {
-        setIncompleteRecipe(recipe)
-        setMissingFields(recipe.missingFields)
-        return
-      }
-
-      // Special case: external-only recipes (no ingredients/steps).
-      // If there's also no image, show the preview modal so user can confirm
-      // and optionally add missing data instead of navigating away.
-      if (recipe.externalOnly && !recipe.imageUrl) {
-        setIncompleteRecipe(recipe)
-        // mark ingredients/steps/image as missing for the modal UI
-        setMissingFields(['ingredients', 'steps', 'image'])
-        return
-      }
-
-      // Default: navigate to the created recipe
       navigate(`/recipes/${recipe.id}`)
     },
     onError: (error) => {
       if (error?.status === 422 && error?.details?.code === 'TITLE_NEEDS_VERIFICATION') {
         setTitleVerificationPrompt(error.details)
       }
-    },
-  })
-
-  const completeRecipeMutation = useMutation({
-    mutationFn: (recipe) => api.updateRecipe(recipe.id, recipe),
-    onSuccess: (recipe) => {
-      queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      navigate(`/recipes/${recipe.id}`)
     },
   })
 
@@ -129,7 +103,6 @@ export default function ImportRecipePage() {
   const cancelImportMutation = useMutation({
     mutationFn: api.cancelImport,
     onSuccess: () => {
-      // Refresh status after cancellation
       if (importJob?.id) importStatusMutation.mutate(importJob.id)
     },
   })
@@ -173,15 +146,6 @@ export default function ImportRecipePage() {
     }
   }, [importJob?.id, importStatus, importStatusMutation])
 
-  const handleConfirmIncompleteRecipe = (completedRecipe) => {
-    completeRecipeMutation.mutate(completedRecipe)
-  }
-
-  const handleCancelIncompleteRecipe = () => {
-    setIncompleteRecipe(null)
-    setMissingFields([])
-  }
-
   const handleConfirmUnverifiedTitleImport = () => {
     const importUrl = titleVerificationPrompt?.recipePreview?.sourceUrl || url
     if (!importUrl) return
@@ -194,6 +158,10 @@ export default function ImportRecipePage() {
   const handleCancelUnverifiedTitleImport = () => {
     setTitleVerificationPrompt(null)
   }
+
+  const preview = titleVerificationPrompt?.recipePreview ?? null
+  const missingFields = titleVerificationPrompt?.missingFields ?? []
+  const matchedKeywords = titleVerificationPrompt?.titleKeywordsMatched ?? []
 
   return (
     <PageFrame
@@ -253,23 +221,59 @@ export default function ImportRecipePage() {
           </button>
 
           {titleVerificationPrompt?.code === 'TITLE_NEEDS_VERIFICATION' ? (
-            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-3">
-              <p className="text-sm font-semibold text-amber-900">Titre a verifier avant import</p>
-              <p className="text-sm text-amber-800">
-                Le titre extrait ne semble pas etre un vrai titre de recette.
-              </p>
-              <p className="text-xs text-amber-900">
-                Titre detecte: {titleVerificationPrompt?.recipePreview?.title || 'Titre introuvable'}
-              </p>
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-amber-900">Titre a confirmer avant import</p>
+                <p className="text-sm text-amber-800">
+                  Le titre extrait ne contient pas de mot reconnu dans le dictionnaire. Vous pouvez annuler ou importer la recette avec le statut "à completer".
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-[120px_1fr]">
+                {preview?.imageUrl ? (
+                  <img
+                    src={preview.imageUrl}
+                    alt={preview.title || 'Aperçu importation'}
+                    className="h-28 w-full rounded-2xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-28 items-center justify-center rounded-2xl bg-amber-100 text-sm font-semibold text-amber-800">
+                    Pas de photo
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Infos d'importation</p>
+                  <div className="space-y-1 text-sm text-sage-800">
+                    <p>
+                      <span className="font-semibold">Titre :</span> {preview?.title || 'Titre introuvable'}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Source :</span>{' '}
+                      {preview?.sourceUrl ? (
+                        <a
+                          href={preview.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="break-all text-sage-700 underline decoration-sage-400 underline-offset-2"
+                        >
+                          {preview.sourceUrl}
+                        </a>
+                      ) : (
+                        'Source introuvable'
+                      )}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Mots reconnus :</span> {matchedKeywords.length ? matchedKeywords.join(', ') : 'Aucun'}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Champs manquants :</span> {missingFields.length ? missingFields.map(formatMissingFieldLabel).join(', ') : 'Aucun'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleConfirmUnverifiedTitleImport}
-                  disabled={importMutation.isPending}
-                  className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-500 disabled:opacity-70"
-                >
-                  Garder avec categorie "A verifier"
-                </button>
                 <button
                   type="button"
                   onClick={handleCancelUnverifiedTitleImport}
@@ -277,6 +281,14 @@ export default function ImportRecipePage() {
                   className="rounded-xl border border-amber-300 px-4 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-70"
                 >
                   Annuler l'import
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmUnverifiedTitleImport}
+                  disabled={importMutation.isPending}
+                  className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-500 disabled:opacity-70"
+                >
+                  Importer avec statut "à completer"
                 </button>
               </div>
             </div>
@@ -302,9 +314,9 @@ export default function ImportRecipePage() {
             <div className="rounded-xl bg-cream-50 p-3 space-y-2">
               <p className="text-xs font-semibold text-sage-800">URLs détectées ({extractedUrls.length}):</p>
               <div className="max-h-32 overflow-y-auto space-y-1">
-                {extractedUrls.slice(0, 5).map((url, idx) => (
+                {extractedUrls.slice(0, 5).map((detectedUrl, idx) => (
                   <p key={idx} className="text-xs text-sage-600 break-all truncate">
-                    {idx + 1}. {new URL(url).hostname}
+                    {idx + 1}. {new URL(detectedUrl).hostname}
                   </p>
                 ))}
                 {extractedUrls.length > 5 ? (
@@ -319,7 +331,7 @@ export default function ImportRecipePage() {
           {fileName && extractedUrls.length === 0 ? (
             <div className="rounded-xl bg-red-50 p-3">
               <p className="text-xs text-red-700">⚠️ Aucune URL de recette détectée dans ce fichier.</p>
-              <p className="text-xs text-red-600 mt-1">Vérifiez que le fichier est bien une export Pinterest.</p>
+              <p className="mt-1 text-xs text-red-600">Vérifiez que le fichier est bien une export Pinterest.</p>
             </div>
           ) : null}
 
@@ -338,22 +350,22 @@ export default function ImportRecipePage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-sage-900">Job: {importJob.id}</p>
                 <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={refreshImportStatus}
-                  disabled={importStatusMutation.isPending}
-                  className="rounded-xl border border-sage-300 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-cream-100 disabled:opacity-60"
-                >
-                  {importStatusMutation.isPending ? 'Actualisation...' : 'Actualiser'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cancelImportMutation.mutate(importJob.id)}
-                  disabled={cancelImportMutation.isPending || !importStatus || importStatus.status !== 'running'}
-                  className="rounded-xl border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
-                >
-                  {cancelImportMutation.isPending ? 'Annulation...' : 'Annuler'}
-                </button>
+                  <button
+                    type="button"
+                    onClick={refreshImportStatus}
+                    disabled={importStatusMutation.isPending}
+                    className="rounded-xl border border-sage-300 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-cream-100 disabled:opacity-60"
+                  >
+                    {importStatusMutation.isPending ? 'Actualisation...' : 'Actualiser'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => cancelImportMutation.mutate(importJob.id)}
+                    disabled={cancelImportMutation.isPending || !importStatus || importStatus.status !== 'running'}
+                    className="rounded-xl border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                  >
+                    {cancelImportMutation.isPending ? 'Annulation...' : 'Annuler'}
+                  </button>
                 </div>
               </div>
 
@@ -389,16 +401,6 @@ export default function ImportRecipePage() {
       {importStatusMutation.isError ? (
         <p className="mt-4 text-sm text-red-700">{importStatusMutation.error.message}</p>
       ) : null}
-
-      {incompleteRecipe && (
-        <IncompleteRecipeModal
-          recipe={incompleteRecipe}
-          missingFields={missingFields}
-          isLoading={completeRecipeMutation.isPending}
-          onConfirm={handleConfirmIncompleteRecipe}
-          onCancel={handleCancelIncompleteRecipe}
-        />
-      )}
     </PageFrame>
   )
 }
