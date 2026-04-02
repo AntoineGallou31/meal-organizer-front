@@ -84,9 +84,11 @@ async function apiRequest(path, options = {}) {
 
   if (!response.ok) {
     let message = 'Une erreur est survenue.'
+    let details = null
 
     try {
       const data = await response.json()
+      details = data
       if (data?.message) {
         message = data.message
       } else if (data?.error) {
@@ -96,7 +98,10 @@ async function apiRequest(path, options = {}) {
       // Keep default message when backend does not send JSON.
     }
 
-    throw new Error(message)
+    const apiError = new Error(message)
+    apiError.status = response.status
+    apiError.details = details
+    throw apiError
   }
 
   if (response.status === 204) {
@@ -133,10 +138,13 @@ export const api = {
   deleteRecipe: (id) => apiRequest(`/api/recipes/${id}`, {
     method: 'DELETE',
   }),
-  importRecipe: async (url) => {
+  importRecipe: async (url, options = {}) => {
     const result = await apiRequest('/api/recipes/import', {
       method: 'POST',
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({
+        url,
+        forceImportUnverifiedTitle: Boolean(options.forceImportUnverifiedTitle),
+      }),
     })
     return normalizeRecipe(result)
   },

@@ -61,12 +61,15 @@ export default function ImportRecipePage() {
   const [importStatus, setImportStatus] = useState(null)
   const [incompleteRecipe, setIncompleteRecipe] = useState(null)
   const [missingFields, setMissingFields] = useState([])
+  const [titleVerificationPrompt, setTitleVerificationPrompt] = useState(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const importMutation = useMutation({
-    mutationFn: api.importRecipe,
+    mutationFn: ({ importUrl, forceImportUnverifiedTitle = false }) =>
+      api.importRecipe(importUrl, { forceImportUnverifiedTitle }),
     onSuccess: (recipe) => {
+      setTitleVerificationPrompt(null)
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
       
       // If recipe is incomplete (missing many fields) show editor modal
@@ -88,6 +91,11 @@ export default function ImportRecipePage() {
 
       // Default: navigate to the created recipe
       navigate(`/recipes/${recipe.id}`)
+    },
+    onError: (error) => {
+      if (error?.status === 422 && error?.details?.code === 'TITLE_NEEDS_VERIFICATION') {
+        setTitleVerificationPrompt(error.details)
+      }
     },
   })
 
@@ -120,7 +128,7 @@ export default function ImportRecipePage() {
 
   const cancelImportMutation = useMutation({
     mutationFn: api.cancelImport,
-    onSuccess: (res) => {
+    onSuccess: () => {
       // Refresh status after cancellation
       if (importJob?.id) importStatusMutation.mutate(importJob.id)
     },
@@ -129,7 +137,8 @@ export default function ImportRecipePage() {
   const handleSubmit = (event) => {
     event.preventDefault()
     if (mode !== 'url') return
-    importMutation.mutate(url)
+    setTitleVerificationPrompt(null)
+    importMutation.mutate({ importUrl: url })
   }
 
   const handleFileUpload = async (event) => {
@@ -171,6 +180,19 @@ export default function ImportRecipePage() {
   const handleCancelIncompleteRecipe = () => {
     setIncompleteRecipe(null)
     setMissingFields([])
+  }
+
+  const handleConfirmUnverifiedTitleImport = () => {
+    const importUrl = titleVerificationPrompt?.recipePreview?.sourceUrl || url
+    if (!importUrl) return
+    importMutation.mutate({
+      importUrl,
+      forceImportUnverifiedTitle: true,
+    })
+  }
+
+  const handleCancelUnverifiedTitleImport = () => {
+    setTitleVerificationPrompt(null)
   }
 
   return (
@@ -229,6 +251,36 @@ export default function ImportRecipePage() {
             {importMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : null}
             Importer
           </button>
+
+          {titleVerificationPrompt?.code === 'TITLE_NEEDS_VERIFICATION' ? (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-3">
+              <p className="text-sm font-semibold text-amber-900">Titre a verifier avant import</p>
+              <p className="text-sm text-amber-800">
+                Le titre extrait ne semble pas etre un vrai titre de recette.
+              </p>
+              <p className="text-xs text-amber-900">
+                Titre detecte: {titleVerificationPrompt?.recipePreview?.title || 'Titre introuvable'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleConfirmUnverifiedTitleImport}
+                  disabled={importMutation.isPending}
+                  className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-500 disabled:opacity-70"
+                >
+                  Garder avec categorie "A verifier"
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelUnverifiedTitleImport}
+                  disabled={importMutation.isPending}
+                  className="rounded-xl border border-amber-300 px-4 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-70"
+                >
+                  Annuler l'import
+                </button>
+              </div>
+            </div>
+          ) : null}
         </form>
       ) : (
         <section className="space-y-4">
@@ -326,7 +378,7 @@ export default function ImportRecipePage() {
         </section>
       )}
 
-      {importMutation.isError ? (
+      {importMutation.isError && importMutation.error?.details?.code !== 'TITLE_NEEDS_VERIFICATION' ? (
         <p className="mt-4 text-sm text-red-700">{importMutation.error.message}</p>
       ) : null}
 

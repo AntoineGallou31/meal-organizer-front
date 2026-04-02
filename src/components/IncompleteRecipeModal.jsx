@@ -179,6 +179,19 @@ export default function IncompleteRecipeModal({ recipe, missingFields, onConfirm
           {/* Optional fields */}
           <div className="space-y-2 rounded-xl border border-cream-300 bg-white p-3">
             <label className="block text-sm font-semibold text-sage-800">Champs optionnels</label>
+
+            {missingFields.includes('image') && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-sage-700">Image (URL)</label>
+                <input
+                  type="url"
+                  value={editedRecipe.imageUrl || ''}
+                  onChange={(e) => handleFieldChange('imageUrl', e.target.value)}
+                  placeholder="https://..."
+                  className="w-full rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
+                />
+              </div>
+            )}
             
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-sage-700">Temps de préparation (minutes)</label>
