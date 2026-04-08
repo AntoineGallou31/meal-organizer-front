@@ -13,7 +13,7 @@ import { getWeekDays, getWeekKey, formatWeekLabel } from '../lib/week'
 function MealCell({ recipe, manualNote, onAdd, onOpen, onClear, label, onSaveManualNote, onEditManual, isEditing }) {
   const [editText, setEditText] = useState(manualNote || '')
 
-  if (isEditing) {
+  if (isEditing) { 
     return (
       <div className="flex items-center gap-2">
         <p className="w-10 text-sm font-semibold text-charcoal-500">
