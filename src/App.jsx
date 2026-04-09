@@ -22,11 +22,7 @@ function ScrollToTop() {
 function AppLayout() {
   return (
     <KonstaApp theme="ios" safeAreas={false} className="relative min-h-screen overflow-hidden pb-28">
-      <ScrollToTop />
-      <div className="pointer-events-none absolute -left-20 top-8 h-60 w-60 rounded-full bg-sage-200/60 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 top-56 h-72 w-72 rounded-full bg-terracotta-200/50 blur-3xl" />
-
-      <main className="relative mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 pb-4 pt-6 md:px-6">
+      <main>
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/recipes" element={<RecipesPage />} />
