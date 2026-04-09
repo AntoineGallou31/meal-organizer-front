@@ -68,6 +68,14 @@
   .animate-sheet-up {
     animation: sheet-up 220ms ease-out;
   }
+
+  .k-list {
+    @apply !my-0;
+  }
+
+  .k-block-title {
+    @apply !text-black dark:!text-white !mt-2 !-mb-2;
+  }
 }
 
 @keyframes page-enter {

@@ -9,20 +9,10 @@ import ImportRecipePage from './pages/ImportRecipePage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 import RecipesPage from './pages/RecipesPage'
 
-function ScrollToTop() {
-  const { pathname } = useLocation()
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' })
-  }, [pathname])
-
-  return null
-}
-
 function AppLayout() {
   return (
-    <KonstaApp theme="ios" safeAreas={false} className="relative min-h-screen overflow-hidden pb-28">
-      <main>
+    <KonstaApp theme="ios" safeAreas={false}>
+      <main className="pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/recipes" element={<RecipesPage />} />

@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import dayjs from 'dayjs'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Block,
+  BlockTitle,
   Button,
   List,
   ListInput,
@@ -11,17 +12,18 @@ import {
   Navbar,
   Page,
   Preloader,
-  Sheet,
 } from 'konsta/react'
 import { api } from '../lib/api'
 import { getWeekDays, getWeekKey, formatWeekLabel } from '../lib/week'
 
 export default function CalendarPage() {
   const queryClient = useQueryClient()
-  const [currentWeek, setCurrentWeek] = useState(dayjs())
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const weekParam = searchParams.get('week')
+  const [currentWeek, setCurrentWeek] = useState(() => (weekParam ? dayjs(weekParam) : dayjs()))
   const [editingCell, setEditingCell] = useState(null)
   const [editingValue, setEditingValue] = useState('')
-  const [recipePickerCell, setRecipePickerCell] = useState(null)
 
   const weekKey = getWeekKey(currentWeek)
 
@@ -30,18 +32,12 @@ export default function CalendarPage() {
     queryFn: () => api.getMealPlan(weekKey),
   })
 
-  const recipesQuery = useQuery({
-    queryKey: ['recipes'],
-    queryFn: api.getRecipes,
-  })
-
   const assignMealMutation = useMutation({
     mutationFn: api.assignMeal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', weekKey] })
       setEditingCell(null)
       setEditingValue('')
-      setRecipePickerCell(null)
     },
   })
 
@@ -62,11 +58,19 @@ export default function CalendarPage() {
   const subtitle = formatWeekLabel(currentWeek)
 
   const goToPreviousWeek = () => {
-    setCurrentWeek((prev) => prev.subtract(1, 'week'))
+    setCurrentWeek((prev) => {
+      const nextWeek = prev.subtract(1, 'week')
+      setSearchParams({ week: nextWeek.format('YYYY-MM-DD') }, { replace: true })
+      return nextWeek
+    })
   }
 
   const goToNextWeek = () => {
-    setCurrentWeek((prev) => prev.add(1, 'week'))
+    setCurrentWeek((prev) => {
+      const nextWeek = prev.add(1, 'week')
+      setSearchParams({ week: nextWeek.format('YYYY-MM-DD') }, { replace: true })
+      return nextWeek
+    })
   }
 
   const getCellKey = (date, slot) => `${date}-${slot}`
@@ -88,21 +92,8 @@ export default function CalendarPage() {
   }
 
   const openRecipePicker = (date, slot) => {
-    setRecipePickerCell({ date, slot })
-  }
-
-  const closeRecipePicker = () => {
-    setRecipePickerCell(null)
-  }
-
-  const handlePickRecipe = (recipe) => {
-    if (!recipePickerCell) return
-
-    assignMealMutation.mutate({
-      date: recipePickerCell.date,
-      slot: recipePickerCell.slot,
-      recipeId: recipe.id,
-    })
+    setSearchParams({ week: currentWeek.format('YYYY-MM-DD') }, { replace: true })
+    navigate(`/recipes?mode=select&date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`)
   }
 
   const renderSlotItem = (day, slot, label) => {
@@ -126,7 +117,6 @@ export default function CalendarPage() {
             onBlur={() => {
               handleSaveManualNote(day.date, slot, editingValue)
             }}
-            inputClassName="w-full text-[14px] py-1"
             autoFocus
           />
         ) : null}
@@ -153,9 +143,8 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="relative h-[100dvh] overflow-hidden">
-      <Page className="page-enter pb-24 pt-1">
-        <Navbar
+    <Page>
+      <Navbar
           title="Planning"
           subtitle={subtitle}
           left={
@@ -171,14 +160,14 @@ export default function CalendarPage() {
         />
 
         {mealPlanQuery.isLoading ? (
-          <Block className="flex items-center gap-1.5 py-1">
-            <Preloader size={20} />
-            <span className="text-[13px]">Chargement du planning...</span>
-          </Block>
+          <div>
+            <Preloader />
+            <span>Chargement du planning...</span>
+          </div>
         ) : null}
 
         {mealPlanQuery.isError ? (
-          <List inset strong className="my-2">
+          <List inset strong>
             <ListItem title="Impossible de charger le planning" footer={mealPlanQuery.error?.message} />
           </List>
         ) : null}
@@ -186,68 +175,31 @@ export default function CalendarPage() {
         {mealPlanQuery.data ? (
           <>
             {days.map((day) => (
-              <Block key={day.date} className="mb-2">
-                <div className="mb-1 px-1 text-[12px] font-semibold uppercase tracking-wide text-sage-700">
+              <div key={day.date}>
+                <BlockTitle>
                   {dayjs(day.date).format('dddd DD MMMM')}
-                </div>
-                <List strongIos outlineIos className="my-0 space-y-0">
+                </BlockTitle>
+                <List strongIos outlineIos>
                   {renderSlotItem(day, 'lunch', 'Midi')}
                   {renderSlotItem(day, 'dinner', 'Soir')}
                 </List>
-              </Block>
+              </div>
             ))}
           </>
         ) : null}
 
         {assignMealMutation.isError ? (
-          <List inset strong className="my-2">
+          <List inset strong>
             <ListItem title="Erreur d'assignation" footer={assignMealMutation.error?.message} />
           </List>
         ) : null}
 
         {removeMealMutation.isError ? (
-          <List inset strong className="my-2">
+          <List inset strong>
             <ListItem title="Erreur de suppression" footer={removeMealMutation.error?.message} />
           </List>
         ) : null}
 
-        <Sheet opened={Boolean(recipePickerCell)} onBackdropClick={closeRecipePicker}>
-          <Block className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold">Ajouter une recette</div>
-                <div className="text-xs text-sage-700">Choisir une recette pour remplacer la note</div>
-              </div>
-              <Button clear small onClick={closeRecipePicker}>Fermer</Button>
-            </div>
-            {recipesQuery.isLoading || assignMealMutation.isPending ? (
-              <div className="flex items-center gap-2 py-1">
-                <Preloader size={16} />
-                <span className="text-[13px]">Chargement des recettes...</span>
-              </div>
-            ) : null}
-            {recipesQuery.isError ? (
-              <List strongIos outlineIos className="my-0">
-                <ListItem title="Impossible de charger les recettes" />
-              </List>
-            ) : null}
-            {recipesQuery.data ? (
-              <List strongIos outlineIos className="my-0 space-y-0">
-                {recipesQuery.data.map((recipe) => (
-                  <ListItem
-                    key={recipe.id}
-                    title={recipe.title}
-                    text={recipe.prepTime ? `${recipe.prepTime} min` : null}
-                    link
-                    onClick={() => handlePickRecipe(recipe)}
-                  />
-                ))}
-              </List>
-            ) : null}
-          </Block>
-        </Sheet>
-
       </Page>
-    </div>
-  )
+    )
 }
