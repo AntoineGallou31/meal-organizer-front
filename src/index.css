@@ -1,8 +1,45 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'konsta/theme.css';
+
+@source './**/*.{js,jsx,ts,tsx}';
+@source '../node_modules/konsta/**/*.{js,jsx,ts,tsx}';
+
+@theme {
+  --font-sans: 'Manrope', sans-serif;
+  --font-display: 'Fraunces', serif;
+
+  --color-cream-50: #f7f1e8;
+  --color-cream-100: #efe4d2;
+  --color-cream-200: #e4d1b5;
+  --color-cream-300: #d6ba93;
+
+  --color-sage-50: #f2f5ef;
+  --color-sage-100: #e3eadb;
+  --color-sage-200: #c8d5bc;
+  --color-sage-300: #a4ba94;
+  --color-sage-500: #738d62;
+  --color-sage-600: #5f7751;
+  --color-sage-700: #4d6143;
+  --color-sage-800: #3d4c35;
+  --color-sage-900: #2f3a2a;
+
+  --color-terracotta-50: #fcf1ec;
+  --color-terracotta-200: #f1c2ad;
+  --color-terracotta-500: #ca6a4e;
+  --color-terracotta-600: #b55b40;
+  --color-terracotta-800: #7f3d2a;
+  --color-terracotta-900: #682f21;
+
+  --color-charcoal-600: #373737;
+  --color-charcoal-700: #2c2c2c;
+  --color-charcoal-800: #212121;
+  --color-charcoal-900: #181818;
+  --color-charcoal-950: #101010;
+
+  --shadow-soft: 0 14px 30px -20px rgba(107, 78, 56, 0.4);
+}
 
 @layer base {
   :root {

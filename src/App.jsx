@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
+import { App as KonstaApp } from 'konsta/react'
 import BottomNav from './components/BottomNav'
 import CalendarPage from './pages/CalendarPage'
 import RecipeFormPage from './pages/RecipeFormPage'
@@ -20,7 +21,7 @@ function ScrollToTop() {
 
 function AppLayout() {
   return (
-    <div className="relative min-h-screen overflow-hidden pb-28">
+    <KonstaApp theme="ios" safeAreas={false} className="relative min-h-screen overflow-hidden pb-28">
       <ScrollToTop />
       <div className="pointer-events-none absolute -left-20 top-8 h-60 w-60 rounded-full bg-sage-200/60 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 top-56 h-72 w-72 rounded-full bg-terracotta-200/50 blur-3xl" />
@@ -37,7 +38,7 @@ function AppLayout() {
       </main>
 
       <BottomNav />
-    </div>
+    </KonstaApp>
   )
 }
 
