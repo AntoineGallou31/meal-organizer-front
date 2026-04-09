@@ -46,9 +46,9 @@ function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
   }
 
   return (
-    <Link to={`/recipes/${recipe.id}`} className={classes}>
+    <button type="button" onClick={() => onPick(recipe)} className={classes}>
       {content}
-    </Link>
+    </button>
   )
 }
 
@@ -110,6 +110,24 @@ export default function RecipesPage() {
   const filteredRecipes = recipesQuery.data ?? []
   const categories = categoriesQuery.data ?? []
 
+  const isRecipeToComplete = (recipe) => {
+    if (!recipe) return false
+
+    if (recipe.externalOnly) {
+      return true
+    }
+
+    return (recipe.categories ?? []).some((category) => {
+      const categoryName = String(category?.name ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+
+      return categoryName === 'a completer'
+    })
+  }
+
   const hasActiveFilters =
     selectedCategoryId !== '' ||
     selectedSeason !== '' ||
@@ -127,6 +145,11 @@ export default function RecipesPage() {
 
   const handleRecipeClick = (recipe) => {
     if (!canPickRecipe) {
+      if (isRecipeToComplete(recipe) && recipe.sourceUrl) {
+        window.location.assign(recipe.sourceUrl)
+        return
+      }
+
       navigate(`/recipes/${recipe.id}`)
       return
     }
@@ -143,15 +166,17 @@ export default function RecipesPage() {
       <Navbar
         title={selectionMode ? 'Choisir une recette' : 'Recettes'}
         left={
-          <Button clear small onClick={() => navigate(-1)} title="Retour" className="rounded-full">
-            <ChevronLeft size={20} />
-          </Button>
+          selectionMode ? (
+            <Button clear small onClick={() => navigate(-1)} title="Retour" className="rounded-full">
+              <ChevronLeft size={30} />
+            </Button>
+          ) : null
         }
         right={
           selectionMode ? null : (
             <Link to="/recipes/new">
               <Button clear small title="Ajouter une recette" className="rounded-full">
-                <Plus size={20} />
+                <Plus size={30} />
               </Button>
             </Link>
           )

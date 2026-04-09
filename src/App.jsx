@@ -11,8 +11,8 @@ import RecipesPage from './pages/RecipesPage'
 
 function AppLayout() {
   return (
-    <KonstaApp theme="ios" safeAreas={false}>
-      <main className="pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <KonstaApp theme="ios" safeAreas>
+      <main>
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/recipes" element={<RecipesPage />} />

@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, LoaderCircle, X } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import ErrorState from '../components/ErrorState'
-import LoadingState from '../components/LoadingState'
-import PageFrame from '../components/PageFrame'
+import { ChevronLeft, LoaderCircle, Upload, X } from 'lucide-react'
+import {
+  Block,
+  BlockTitle,
+  Button,
+  Chip,
+  Fab,
+  List,
+  ListInput,
+  ListItem,
+  Navbar,
+  Page,
+  Preloader,
+} from 'konsta/react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { SEASONS } from '../lib/seasonality'
 
@@ -128,6 +138,9 @@ export default function RecipeFormPage() {
     () => (isEdit ? 'Modifier une recette existante' : 'Créer une recette à la main'),
     [isEdit],
   )
+  const normalizedCustomSeason = customSeason.trim().toLowerCase()
+  const canAddCustomSeason =
+    normalizedCustomSeason !== '' && !selectedSeasons.includes(normalizedCustomSeason)
 
   const defaultValues = recipeToFormDefaults(isEdit ? recipeQuery.data : null)
 
@@ -169,10 +182,8 @@ export default function RecipeFormPage() {
   }
 
   const addCustomSeason = () => {
-    const trimmed = customSeason.trim().toLowerCase()
-    if (!trimmed) return
-    if (selectedSeasons.includes(trimmed)) return
-    setSelectedSeasons((prev) => [...prev, trimmed])
+    if (!canAddCustomSeason) return
+    setSelectedSeasons((prev) => [...prev, normalizedCustomSeason])
     setCustomSeason('')
   }
 
@@ -181,266 +192,286 @@ export default function RecipeFormPage() {
   }
 
   return (
-    <PageFrame
-      title={isEdit ? 'Modifier la recette' : 'Nouvelle recette'}
-      subtitle={subtitle}
-      action={
-        <Link
-          to={isEdit ? `/recipes/${id}` : '/recipes'}
-          className="inline-flex items-center gap-2 rounded-xl border border-sage-300 px-3 py-2 text-xs font-semibold text-sage-700 transition hover:bg-cream-100"
-        >
-          <ArrowLeft size={14} /> Retour
-        </Link>
-      }
-    >
-      {isEdit && recipeQuery.isLoading ? <LoadingState label="Chargement de la recette..." /> : null}
-      {isEdit && recipeQuery.isError ? (
-        <ErrorState message={recipeQuery.error.message} onRetry={recipeQuery.refetch} />
+    <Page>
+      <Navbar
+        title={isEdit ? 'Modifier la recette' : 'Nouvelle recette'}
+        subtitle={subtitle}
+        left={
+          <Button clear small onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')} title="Retour">
+            <ChevronLeft size={20} />
+          </Button>
+        }
+        right={
+          <Fab
+            small
+            tonal
+            title="Importer une recette"
+            onClick={() => navigate('/recipes/import')}
+            className="rounded-full"
+          >
+            <Upload size={16} />
+          </Fab>
+        }
+      />
+
+      {isEdit && recipeQuery.isLoading ? (
+        <Block className="flex items-center justify-center gap-2 py-8 text-sm text-gray-600">
+          <Preloader />
+          <span>Chargement de la recette...</span>
+        </Block>
       ) : null}
 
-      {(!isEdit || recipeQuery.data) ? (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800">Titre</span>
-            <input
+      {isEdit && recipeQuery.isError ? (
+        <List inset strong>
+          <ListItem title="Impossible de charger la recette" footer={recipeQuery.error?.message} />
+        </List>
+      ) : null}
+
+      {!isEdit || recipeQuery.data ? (
+        <form onSubmit={handleSubmit} className="pb-24">
+          <BlockTitle>Informations</BlockTitle>
+          <List strongIos outlineIos>
+            <ListInput
               type="text"
+              label="Titre"
               name="title"
               required
               defaultValue={defaultValues.title}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
-          </label>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-sage-800">Temps (min)</span>
-              <input
-                type="number"
-                name="prepTime"
-                min="1"
-                defaultValue={defaultValues.prepTime}
-                className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
-              />
-            </label>
+            <ListInput
+              type="number"
+              label="Temps (min)"
+              name="prepTime"
+              min="1"
+              defaultValue={defaultValues.prepTime}
+            />
 
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-sage-800">Portions</span>
-              <input
-                type="number"
-                name="servings"
-                min="1"
-                defaultValue={defaultValues.servings}
-                className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
-              />
-            </label>
-          </div>
+            <ListInput
+              type="number"
+              label="Portions"
+              name="servings"
+              min="1"
+              defaultValue={defaultValues.servings}
+            />
 
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800">URL image</span>
-            <input
+            <ListInput
               type="url"
+              label="URL image"
               name="imageUrl"
               placeholder="https://..."
               defaultValue={defaultValues.imageUrl}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
-          </label>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800">URL source (optionnel)</span>
-            <input
+            <ListInput
               type="url"
+              label="URL source (optionnel)"
               name="sourceUrl"
               placeholder="https://..."
               defaultValue={defaultValues.sourceUrl}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
             />
-          </label>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800">Ingrédients (1 ligne = 1 ingrédient)</span>
-            <textarea
+            <ListInput
+              type="textarea"
+              label="Ingrédients (1 ligne = 1 ingrédient)"
               name="ingredientsText"
               required
-              rows={6}
               defaultValue={defaultValues.ingredientsText}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
+              inputClassName="min-h-28"
             />
-          </label>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-sage-800">Étapes (1 ligne = 1 étape)</span>
-            <textarea
+            <ListInput
+              type="textarea"
+              label="Étapes (1 ligne = 1 étape)"
               name="stepsText"
               required
-              rows={8}
               defaultValue={defaultValues.stepsText}
-              className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-sage-900 outline-none transition focus:border-sage-500"
+              inputClassName="min-h-36"
             />
-          </label>
+          </List>
 
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold text-sage-800">Categories</h3>
-            {categoriesQuery.isLoading ? (
-              <p className="text-sm text-sage-700">Chargement des categories...</p>
-            ) : null}
-            {categoriesQuery.isError ? (
-              <p className="text-sm text-red-700">{categoriesQuery.error.message}</p>
-            ) : null}
-            {!categoriesQuery.isLoading && !categoriesQuery.isError ? (
-              <div className="grid gap-2 sm:grid-cols-2">
+          <BlockTitle>Catégories</BlockTitle>
+
+          {categoriesQuery.isLoading ? (
+            <Block className="flex items-center gap-2 py-3 text-sm text-gray-600">
+              <Preloader />
+              <span>Chargement des catégories...</span>
+            </Block>
+          ) : null}
+
+          {categoriesQuery.isError ? (
+            <List inset strong>
+              <ListItem title="Impossible de charger les catégories" footer={categoriesQuery.error?.message} />
+            </List>
+          ) : null}
+
+          {!categoriesQuery.isLoading && !categoriesQuery.isError ? (
+            <>
+              <List strongIos outlineIos>
                 {(categoriesQuery.data ?? []).map((category) => {
                   const checked = selectedCategoryIds.includes(category.id)
+
                   return (
-                    <label
+                    <ListItem
                       key={category.id}
-                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
-                        checked
-                          ? 'border-sage-600 bg-sage-50 text-sage-900'
-                          : 'border-cream-300 bg-white text-sage-800'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleCategory(category.id)}
-                      />
-                      <span>{category.name}</span>
-                    </label>
+                      title={category.name}
+                      className={checked ? '!bg-sage-50' : ''}
+                      onClick={() => toggleCategory(category.id)}
+                      after={
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleCategory(category.id)}
+                        />
+                      }
+                    />
                   )
                 })}
-              </div>
-            ) : null}
-            {categoryError ? (
-              <p className="text-xs text-red-700">{categoryError}</p>
-            ) : !isEdit && selectedCategoryIds.length === 0 ? (
-              <p className="text-xs text-sage-700">Aucune categorie selectionnee: le backend tentera une detection automatique.</p>
-            ) : null}
 
-            <div className="space-y-2 border-t border-cream-300 pt-2">
-              <label className="block text-xs font-semibold text-sage-700">Ajouter une catégorie personnalisée</label>
-              <div className="flex gap-2">
-                <input
+                <ListInput
                   type="text"
+                  label="Ajouter une catégorie personnalisée"
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
+                  onChange={(event) => setNewCategoryName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
                       addNewCategory()
                     }
                   }}
                   placeholder="Ex: Plats sans gluten"
-                  className="flex-1 rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
                   disabled={createCategoryMutation.isPending}
                 />
-                <button
+              </List>
+
+              <div className="px-4 pt-2">
+                <Button
+                  tonal
                   type="button"
                   onClick={addNewCategory}
                   disabled={createCategoryMutation.isPending || !newCategoryName.trim()}
-                  className="rounded-lg border border-sage-300 bg-white px-4 py-2 text-sm font-semibold text-sage-700 transition hover:bg-cream-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full"
                 >
-                  {createCategoryMutation.isPending ? <LoaderCircle size={14} className="inline animate-spin" /> : 'Ajouter'}
-                </button>
+                  {createCategoryMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : 'Ajouter la catégorie'}
+                </Button>
               </div>
-              {createCategoryMutation.isError ? (
-                <p className="text-xs text-red-700">{createCategoryMutation.error.message}</p>
-              ) : null}
-            </div>
-          </section>
+            </>
+          ) : null}
 
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold text-sage-800">Saisonnalité (optionnel)</h3>
-            <div className="space-y-2">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {SEASONS.map((season) => {
-                  const checked = selectedSeasons.includes(season.value)
+          {categoryError ? (
+            <List inset strong>
+              <ListItem className="!text-red-700" title={categoryError} />
+            </List>
+          ) : null}
+
+          {createCategoryMutation.isError ? (
+            <List inset strong>
+              <ListItem title="Impossible de créer la catégorie" footer={createCategoryMutation.error?.message} />
+            </List>
+          ) : null}
+
+          {!isEdit && selectedCategoryIds.length === 0 ? (
+            <List inset strong>
+              <ListItem title="Aucune catégorie sélectionnée" footer="Le backend tentera une détection automatique." />
+            </List>
+          ) : null}
+
+          <BlockTitle>Saisonnalité (optionnel)</BlockTitle>
+          <List strongIos outlineIos>
+            {SEASONS.map((season) => {
+              const checked = selectedSeasons.includes(season.value)
+
+              return (
+                <ListItem
+                  key={season.id}
+                  title={season.label}
+                  className={checked ? '!bg-blue-50' : ''}
+                  onClick={() => toggleSeason(season.value)}
+                  after={
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() => toggleSeason(season.value)}
+                    />
+                  }
+                />
+              )
+            })}
+
+            <ListInput
+              type="text"
+              label="Ajouter une saison personnalisée"
+              value={customSeason}
+              onChange={(event) => setCustomSeason(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  addCustomSeason()
+                }
+              }}
+              placeholder="Ex: printemps tardif"
+            />
+          </List>
+
+          <div className="space-y-3 px-4 pt-2">
+            <Button tonal type="button" onClick={addCustomSeason} disabled={!canAddCustomSeason} className="w-full">
+              Ajouter la saison
+            </Button>
+
+            {normalizedCustomSeason !== '' && !canAddCustomSeason ? (
+              <p className="text-xs text-sage-700">Cette saison est deja selectionnee.</p>
+            ) : null}
+
+            {selectedSeasons.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {selectedSeasons.map((season) => {
+                  const isPredefined = SEASONS.some((item) => item.value === season)
+                  const label = isPredefined ? SEASONS.find((item) => item.value === season)?.label : season
+
                   return (
-                    <label
-                      key={season.id}
-                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
-                        checked
-                          ? 'border-blue-600 bg-blue-50 text-blue-900'
-                          : 'border-cream-300 bg-white text-sage-800'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleSeason(season.value)}
-                      />
-                      <span>{season.label}</span>
-                    </label>
-                  )
-                })}
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-sage-700">Ajouter une saison personnalisée</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={customSeason}
-                    onChange={(e) => setCustomSeason(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addCustomSeason()
-                      }
-                    }}
-                    placeholder="Ex: printemps tardif"
-                    className="flex-1 rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm text-sage-900 outline-none transition focus:border-sage-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={addCustomSeason}
-                    className="rounded-lg border border-sage-300 bg-white px-4 py-2 text-sm font-semibold text-sage-700 transition hover:bg-cream-100"
-                  >
-                    Ajouter
-                  </button>
-                </div>
-              </div>
-
-              {selectedSeasons.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {selectedSeasons.map((season) => {
-                    const isPredefined = SEASONS.some((s) => s.value === season)
-                    const label = isPredefined ? SEASONS.find((s) => s.value === season)?.label : season
-                    return (
-                      <span
-                        key={season}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800"
-                      >
-                        {label}
+                    <Chip
+                      key={season}
+                      className="!bg-blue-100 !text-blue-800"
+                      media={
                         <button
                           type="button"
                           onClick={() => removeCustomSeason(season)}
-                          className="hover:text-blue-900"
+                          className="inline-flex h-4 w-4 items-center justify-center text-blue-800"
+                          aria-label={`Retirer ${label}`}
                         >
-                          <X size={14} />
+                          <X size={12} />
                         </button>
-                      </span>
-                    )
-                  })}
-                </div>
-              ) : null}
-            </div>
-          </section>
+                      }
+                    >
+                      {label}
+                    </Chip>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
 
-          <button
-            type="submit"
-            disabled={saveMutation.isPending}
-            className="inline-flex items-center gap-2 rounded-2xl bg-sage-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sage-500 disabled:cursor-not-allowed disabled:opacity-80"
-          >
-            {saveMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : null}
-            {isEdit ? 'Enregistrer les modifications' : 'Créer la recette'}
-          </button>
+          <Block className="grid grid-cols-2 gap-2">
+            <Button tonal type="button" large disabled={saveMutation.isPending} onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')}>
+              Annuler
+            </Button>
+            <Button type="submit" large disabled={saveMutation.isPending}>
+              <span className="inline-flex items-center gap-2">
+                {saveMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : null}
+                {isEdit ? 'Enregistrer' : 'Créer'}
+              </span>
+            </Button>
+          </Block>
         </form>
       ) : null}
 
       {saveMutation.isError ? (
-        <p className="mt-4 text-sm text-red-700">{saveMutation.error.message}</p>
+        <List inset strong>
+          <ListItem title="Impossible d’enregistrer la recette" footer={saveMutation.error?.message} />
+        </List>
       ) : null}
-    </PageFrame>
+    </Page>
   )
 }

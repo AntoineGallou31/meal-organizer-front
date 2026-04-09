@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, Plus, Trash2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -96,23 +96,60 @@ export default function CalendarPage() {
     navigate(`/recipes?mode=select&date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`)
   }
 
+  const isRecipeToComplete = (recipe) => {
+    if (!recipe) return false
+
+    if (recipe.externalOnly) {
+      return true
+    }
+
+    return (recipe.categories ?? []).some((category) => {
+      const categoryName = String(category?.name ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+
+      return categoryName === 'a completer'
+    })
+  }
+
+  const openMealRecipe = async (recipeId) => {
+    if (!recipeId) return
+
+    try {
+      const recipe = await api.getRecipeById(recipeId)
+      if (isRecipeToComplete(recipe) && recipe.sourceUrl) {
+        window.location.assign(recipe.sourceUrl)
+        return
+      }
+    } catch {
+      // Fallback to local detail page when API lookup fails.
+    }
+
+    navigate(`/recipes/${recipeId}`)
+  }
+
   const renderSlotItem = (day, slot, label) => {
     const recipe = slot === 'lunch' ? day.lunch : day.dinner
     const manualNote = slot === 'lunch' ? day.lunchManualText : day.dinnerManualText
     const cellKey = getCellKey(day.date, slot)
     const isEditing = editingCell === cellKey
-    const title = recipe?.title ?? manualNote ?? 'Ajouter une note'
+    const hasSelectedMeal = Boolean(recipe || manualNote)
+    const title = recipe?.title ?? manualNote ?? 'Ajouter une recette'
+    const isRecipeSelected = Boolean(recipe)
 
     return (
       <ListItem
         key={cellKey}
         header={label}
+        className={`items-center ${isRecipeSelected ? 'cursor-pointer' : ''}`}
         title={isEditing ? null : title}
         text={isEditing ? (
           <ListInput
             type="text"
             value={editingValue}
-            placeholder="Entrez un plat"
+            placeholder="Entrez une recette"
             onChange={(event) => setEditingValue(event.target.value)}
             onBlur={() => {
               handleSaveManualNote(day.date, slot, editingValue)
@@ -120,23 +157,50 @@ export default function CalendarPage() {
             autoFocus
           />
         ) : null}
-        after={isEditing ? (
-          <Button
-            small
-            tonal
-            onClick={(event) => {
-              event.stopPropagation()
-              openRecipePicker(day.date, slot)
-            }}
-          >
-            Ajouter une recette
-          </Button>
-        ) : 'Editer'}
-        onClick={() => {
+        after={
+          <div className="flex w-9 justify-end">
+            {hasSelectedMeal ? (
+              <Button
+                clear
+                small
+                className="!text-red-600"
+                title="Supprimer le repas"
+                disabled={removeMealMutation.isPending}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setEditingCell(null)
+                  setEditingValue('')
+                  removeMealMutation.mutate({ date: day.date, slot })
+                }}
+              >
+                <Trash2 size={16} />
+              </Button>
+            ) : (
+              <Button
+                clear
+                small
+                title="Ajouter une recette"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openRecipePicker(day.date, slot)
+                }}
+              >
+                <Plus size={18} />
+              </Button>
+            )}
+          </div>
+        }
+        onClick={async () => {
           if (isEditing) {
             return
           }
-          startInlineEdit(day.date, slot, recipe?.title ?? manualNote ?? '')
+
+          if (recipe) {
+            await openMealRecipe(recipe.id)
+            return
+          }
+
+          startInlineEdit(day.date, slot, manualNote ?? '')
         }}
       />
     )
@@ -149,12 +213,12 @@ export default function CalendarPage() {
           subtitle={subtitle}
           left={
             <Button clear small onClick={goToPreviousWeek} title="Semaine precedente">
-              <ChevronLeft size={20} />
+              <ArrowLeftIcon size={30} />
             </Button>
           }
           right={
             <Button clear small onClick={goToNextWeek} title="Semaine suivante">
-              <ChevronRight size={20} />
+              <ArrowRightIcon size={30} />
             </Button>
           }
         />

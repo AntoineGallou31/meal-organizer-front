@@ -7,38 +7,6 @@
 @source '../node_modules/konsta/**/*.{js,jsx,ts,tsx}';
 
 @theme {
-  --font-sans: 'Manrope', sans-serif;
-  --font-display: 'Fraunces', serif;
-
-  --color-cream-50: #f7f1e8;
-  --color-cream-100: #efe4d2;
-  --color-cream-200: #e4d1b5;
-  --color-cream-300: #d6ba93;
-
-  --color-sage-50: #f2f5ef;
-  --color-sage-100: #e3eadb;
-  --color-sage-200: #c8d5bc;
-  --color-sage-300: #a4ba94;
-  --color-sage-500: #738d62;
-  --color-sage-600: #5f7751;
-  --color-sage-700: #4d6143;
-  --color-sage-800: #3d4c35;
-  --color-sage-900: #2f3a2a;
-
-  --color-terracotta-50: #fcf1ec;
-  --color-terracotta-200: #f1c2ad;
-  --color-terracotta-500: #ca6a4e;
-  --color-terracotta-600: #b55b40;
-  --color-terracotta-800: #7f3d2a;
-  --color-terracotta-900: #682f21;
-
-  --color-charcoal-600: #373737;
-  --color-charcoal-700: #2c2c2c;
-  --color-charcoal-800: #212121;
-  --color-charcoal-900: #181818;
-  --color-charcoal-950: #101010;
-
-  --shadow-soft: 0 14px 30px -20px rgba(107, 78, 56, 0.4);
 }
 
 @layer base {
@@ -48,11 +16,14 @@
 
   * {
     @apply box-border;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  body {
-    @apply m-0 min-h-screen bg-cream-50 font-sans text-sage-900 antialiased;
-    background-image: radial-gradient(circle at 10% -20%, rgba(194, 176, 151, 0.4), transparent 40%), radial-gradient(circle at 90% 10%, rgba(115, 141, 98, 0.2), transparent 35%);
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   #root {
@@ -60,32 +31,3 @@
   }
 }
 
-@layer utilities {
-  .page-enter {
-    animation: page-enter 240ms ease-out;
-  }
-
-  .animate-sheet-up {
-    animation: sheet-up 220ms ease-out;
-  }
-
-  .k-list {
-    @apply !my-0;
-  }
-
-  .k-block-title {
-    @apply !text-black dark:!text-white !mt-2 !-mb-2;
-  }
-}
-
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
