@@ -124,7 +124,7 @@ export default function RecipeDetailPage() {
   return (
     <Page>
       <Navbar
-        title={recipe?.title ?? 'Fiche recette'}
+        title="Fiche recette"
         left={
           <Button clear small onClick={() => navigate('/recipes')} title="Retour">
             <ChevronLeft size={30} />
@@ -155,6 +155,10 @@ export default function RecipeDetailPage() {
                 Aucune photo disponible
               </div>
             )}
+
+            <div className="px-4 pt-4">
+              <h1 className="text-xl font-semibold text-sage-900">{recipe.title}</h1>
+            </div>
 
             <div className="flex flex-wrap gap-4 p-4 text-sm text-sage-700">
               <span className="inline-flex items-center gap-2">

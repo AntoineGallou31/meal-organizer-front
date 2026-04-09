@@ -144,7 +144,15 @@ export default function CalendarPage() {
         key={cellKey}
         header={label}
         className={`items-center ${isRecipeSelected ? 'cursor-pointer' : ''}`}
-        title={isEditing ? null : title}
+        title={
+          isEditing ? null : (
+            <span
+              className={isRecipeSelected ? 'font-medium underline decoration-2 underline-offset-2' : undefined}
+            >
+              {title}
+            </span>
+          )
+        }
         text={isEditing ? (
           <ListInput
             type="text"
@@ -207,7 +215,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <Page>
+    <Page className="pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
       <Navbar
           title="Planning"
           subtitle={subtitle}

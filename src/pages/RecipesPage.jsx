@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Filter, Plus } from 'lucide-react'
+import { ChevronLeft, Filter, Plus, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
@@ -135,6 +135,14 @@ export default function RecipesPage() {
     prepMax.trim() !== '' ||
     sort !== 'newest'
 
+  const activeFiltersCount = [
+    selectedCategoryId !== '',
+    selectedSeason !== '',
+    ingredient.trim() !== '',
+    prepMax.trim() !== '',
+    sort !== 'newest',
+  ].filter(Boolean).length
+
   const clearFilters = () => {
     setSelectedCategoryId('')
     setSelectedSeason('')
@@ -183,7 +191,7 @@ export default function RecipesPage() {
         }
       />
 
-      <div className="flex items-center gap-2 px-4 pb-2">
+      <div className="flex items-center gap-2 px-4 py-4">
           <Searchbar
             placeholder="Rechercher une recette"
             value={search}
@@ -282,32 +290,23 @@ export default function RecipesPage() {
       ) : null}
 
       <Sheet opened={showFilters} onBackdropClick={() => setShowFilters(false)}>
-        <div className="p-4">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="max-h-[85vh] overflow-y-auto rounded-t-3xl bg-gradient-to-b from-cream-50 via-cream-50 to-white p-4 pb-28">
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-sage-200" />
+
+          <div className="mb-4 flex items-start justify-between gap-3">
             <div>
-              <div className="text-base font-semibold">Filtres</div>
-              <div className="text-sm text-gray-500">Affiner les recettes</div>
+              <div className="flex items-center gap-2">
+                <div className="text-lg font-semibold text-sage-900">Filtres</div>
+              </div>
             </div>
-            <Button clear small onClick={() => setShowFilters(false)}>
-              Fermer
+
+            <Button clear small className="!text-sage-700" onClick={() => setShowFilters(false)} title="Fermer">
+              <X size={18} />
             </Button>
           </div>
 
-          <List strongIos outlineIos>
-            <ListInput
-              label="Saisonnalité"
-              type="select"
-              value={selectedSeason}
-              onChange={(event) => setSelectedSeason(event.target.value)}
-            >
-              <option value="">Toutes saisons</option>
-              {SEASONS.map((season) => (
-                <option key={season.id} value={season.value}>
-                  {season.label}
-                </option>
-              ))}
-            </ListInput>
-
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-sage-600">Recherche</div>
+          <List strongIos outlineIos className="mb-4 overflow-hidden rounded-2xl">
             <ListInput
               label="Ingrédient"
               type="text"
@@ -324,6 +323,23 @@ export default function RecipesPage() {
               placeholder="Ex: 30"
               onChange={(event) => setPrepMax(event.target.value)}
             />
+          </List>
+
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-sage-600">Classement</div>
+          <List strongIos outlineIos className="overflow-hidden rounded-2xl">
+            <ListInput
+              label="Saisonnalité"
+              type="select"
+              value={selectedSeason}
+              onChange={(event) => setSelectedSeason(event.target.value)}
+            >
+              <option value="">Toutes saisons</option>
+              {SEASONS.map((season) => (
+                <option key={season.id} value={season.value}>
+                  {season.label}
+                </option>
+              ))}
+            </ListInput>
 
             <ListInput
               label="Tri"
@@ -337,13 +353,17 @@ export default function RecipesPage() {
             </ListInput>
           </List>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button small onClick={clearFilters} disabled={!hasActiveFilters}>
-              Réinitialiser
-            </Button>
-            <Button small tonal onClick={() => setShowFilters(false)}>
-              Appliquer
-            </Button>
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="pointer-events-auto rounded-2xl border border-cream-200 bg-white/95 p-3 shadow-soft backdrop-blur">
+              <div className="grid grid-cols-2 gap-2">
+                <Button small tonal onClick={clearFilters} disabled={!hasActiveFilters}>
+                  Réinitialiser
+                </Button>
+                <Button small onClick={() => setShowFilters(false)}>
+                  Appliquer
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </Sheet>
