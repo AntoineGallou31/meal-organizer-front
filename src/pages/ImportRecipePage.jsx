@@ -15,39 +15,33 @@ import {
 } from 'konsta/react'
 import { api } from '../lib/api'
 
-function extractUrlsFromText(text) {
-  if (!text || typeof text !== 'string') return []
-
-  if (text.includes('Board Name:') && text.includes('Canonical Link:')) {
-    const canonicalUrls = []
-    const pinBlocks = text.split(/https:\/\/www\.pinterest\.com\/pin\/\d+\//)
-
-    for (let i = 1; i < pinBlocks.length; i += 1) {
-      const block = pinBlocks[i]
-      const boardNameMatch = block.match(/Board Name:\s*([^<\n]+)/)
-      const boardName = boardNameMatch ? boardNameMatch[1].trim() : ''
-
-      if (boardName !== 'Recettes') {
-        continue
-      }
-
-      const canonicalMatch = block.match(/Canonical Link:\s*<a\s+href="([^"]+)"/)
-      const url = canonicalMatch ? canonicalMatch[1] : null
-
-      if (url && url.startsWith('http') && !url.includes('pinterest.com')) {
-        canonicalUrls.push(url)
-      }
-    }
-
-    if (canonicalUrls.length > 0) {
-      return [...new Set(canonicalUrls)]
-    }
+function collectUrls(value) {
+  if (typeof value === 'string') {
+    return [value]
   }
 
-  const matches = text.match(/https?:\/\/[^\s"'<>]+/g) || []
-  const urls = [...new Set(matches.map((url) => url.trim()).filter(Boolean))]
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectUrls(item))
+  }
 
-  return urls.filter((url) => !url.includes('pinterest.com'))
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap((item) => collectUrls(item))
+  }
+
+  return []
+}
+
+function extractUrlsFromJsonContent(rawText) {
+  if (!rawText || typeof rawText !== 'string') return []
+
+  const parsed = JSON.parse(rawText)
+  const candidates = collectUrls(parsed)
+
+  return [...new Set(
+    candidates
+      .map((url) => String(url || '').trim())
+      .filter((url) => /^https?:\/\//i.test(url)),
+  )]
 }
 
 function formatMissingFieldLabel(field) {
@@ -70,6 +64,7 @@ export default function ImportRecipePage() {
   const [url, setUrl] = useState('')
   const [fileName, setFileName] = useState('')
   const [extractedUrls, setExtractedUrls] = useState([])
+  const [fileError, setFileError] = useState('')
   const [importJob, setImportJob] = useState(null)
   const [importStatus, setImportStatus] = useState(null)
   const [titleVerificationPrompt, setTitleVerificationPrompt] = useState(null)
@@ -91,8 +86,8 @@ export default function ImportRecipePage() {
     },
   })
 
-  const importPinterestMutation = useMutation({
-    mutationFn: api.importPinterestExport,
+  const importUrlsMutation = useMutation({
+    mutationFn: api.importUrlsJson,
     onSuccess: (job) => {
       setImportJob(job)
       setImportStatus(job)
@@ -129,15 +124,26 @@ export default function ImportRecipePage() {
     if (!file) return
 
     setFileName(file.name)
-    const text = await file.text()
-    setExtractedUrls(extractUrlsFromText(text))
+    setFileError('')
+
+    try {
+      const text = await file.text()
+      const urls = extractUrlsFromJsonContent(text)
+      setExtractedUrls(urls)
+      if (!urls.length) {
+        setFileError('Aucune URL valide trouvée dans le JSON.')
+      }
+    } catch {
+      setExtractedUrls([])
+      setFileError('Le fichier doit être un JSON valide contenant des URLs.')
+    }
   }
 
-  const handlePinterestImport = () => {
+  const handleUrlsImport = () => {
     if (!extractedUrls.length) return
     setImportStatus(null)
     setImportJob(null)
-    importPinterestMutation.mutate({ urls: extractedUrls })
+    importUrlsMutation.mutate({ urls: extractedUrls })
   }
 
   const refreshImportStatus = () => {
@@ -185,7 +191,7 @@ export default function ImportRecipePage() {
       />
 
       <Block className="space-y-3 pb-24">
-        <Block className="!m-0 p-0">
+        <Block className="m-0! p-0">
           <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-cream-200">
             <Button
               small
@@ -230,16 +236,16 @@ export default function ImportRecipePage() {
           </form>
         ) : (
           <section>
-            <BlockTitle>Fichier Pinterest</BlockTitle>
+            <BlockTitle>Fichier JSON d'URLs</BlockTitle>
             <List strongIos outlineIos>
               <ListItem
-                title="Sélectionner un export Pinterest"
-                text="Fichiers .txt, .html ou .csv"
+                title="Sélectionner un fichier JSON"
+                text={'Format conseillé: { "urls": ["https://..."] }'}
                 after={
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-sage-300 px-3 py-2 text-xs font-semibold text-sage-700 transition hover:bg-cream-100">
                     <input
                       type="file"
-                      accept=".txt,.html,.csv"
+                      accept="application/json,.json"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
@@ -251,6 +257,12 @@ export default function ImportRecipePage() {
 
             {fileName ? (
               <Block className="text-xs text-sage-700">Fichier charge: {fileName}</Block>
+            ) : null}
+
+            {fileError ? (
+              <List inset strong>
+                <ListItem title="Fichier invalide" footer={fileError} />
+              </List>
             ) : null}
 
             {fileName && extractedUrls.length > 0 ? (
@@ -269,7 +281,7 @@ export default function ImportRecipePage() {
               <List inset strong>
                 <ListItem
                   title="Aucune URL de recette détectée"
-                  footer="Vérifiez que le fichier est bien une export Pinterest."
+                  footer="Vérifiez que le JSON contient une liste d'URLs HTTP/HTTPS."
                 />
               </List>
             ) : null}
@@ -279,12 +291,12 @@ export default function ImportRecipePage() {
                 type="button"
                 large
                 className="w-full"
-                disabled={importPinterestMutation.isPending || extractedUrls.length === 0}
-                onClick={handlePinterestImport}
+                disabled={importUrlsMutation.isPending || extractedUrls.length === 0}
+                onClick={handleUrlsImport}
               >
                 <span className="inline-flex items-center gap-2">
-                  {importPinterestMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : null}
-                  Lancer l'import Pinterest
+                  {importUrlsMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : null}
+                  Lancer l'import des recettes
                 </span>
               </Button>
             </div>
@@ -307,7 +319,7 @@ export default function ImportRecipePage() {
                     </Button>
                     <Button
                       small
-                      className="!bg-red-600"
+                      className="bg-red-600!"
                       onClick={() => cancelImportMutation.mutate(importJob.id)}
                       disabled={cancelImportMutation.isPending || !importStatus || importStatus.status !== 'running'}
                     >
@@ -402,9 +414,9 @@ export default function ImportRecipePage() {
           </List>
         ) : null}
 
-        {importPinterestMutation.isError ? (
+        {importUrlsMutation.isError ? (
           <List inset strong>
-            <ListItem title="Impossible de lancer l'import Pinterest" footer={importPinterestMutation.error.message} />
+            <ListItem title="Impossible de lancer l'import" footer={importUrlsMutation.error.message} />
           </List>
         ) : null}
 

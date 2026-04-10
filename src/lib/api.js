@@ -168,7 +168,7 @@ export const api = {
     const data = await apiRequest(`/api/categories/${categoryId}/recipes${toQueryString({ search })}`)
     return Array.isArray(data) ? data.map(normalizeRecipe) : data
   },
-  importPinterestExport: (payload) => apiRequest('/api/recipes/import-pinterest-export', {
+  importUrlsJson: (payload) => apiRequest('/api/recipes/import-urls', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
