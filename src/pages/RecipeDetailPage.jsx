@@ -99,6 +99,7 @@ export default function RecipeDetailPage() {
   })
 
   const recipe = recipeQuery.data
+  const restrictedDetail = Boolean(recipe?.restrictedDetail)
   const upcomingDays = getUpcomingDays(14)
   const baseServings = Number(recipe?.servings)
   const desiredServings = Number(targetServings)
@@ -120,6 +121,11 @@ export default function RecipeDetailPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [id])
+
+  useEffect(() => {
+    if (!recipe || !restrictedDetail || !recipe.sourceUrl) return
+    window.location.assign(recipe.sourceUrl)
+  }, [recipe, restrictedDetail])
 
   return (
     <Page>
@@ -145,7 +151,27 @@ export default function RecipeDetailPage() {
         </List>
       ) : null}
 
-      {recipe ? (
+      {recipe && restrictedDetail ? (
+        <Block className="pb-24">
+          <Block strong className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900">
+            <div className="space-y-3">
+              <h1 className="text-lg font-semibold">Recette importée non cohérente</h1>
+              <p className="text-sm">
+                Cette recette reste disponible dans vos listes et dans l'agenda, mais la fiche détaillée est bloquée car le contenu importé n'est pas fiable.
+              </p>
+              {recipe.sourceUrl ? (
+                <Button large onClick={() => window.location.assign(recipe.sourceUrl)}>
+                  Ouvrir la recette originale
+                </Button>
+              ) : (
+                <p className="text-sm">Aucune URL source disponible.</p>
+              )}
+            </div>
+          </Block>
+        </Block>
+      ) : null}
+
+      {recipe && !restrictedDetail ? (
         <Block className="space-y-2 pb-24">
           <Block strong className="overflow-hidden rounded-2xl bg-white !p-0">
             {recipe.imageUrl ? (

@@ -99,6 +99,10 @@ export default function CalendarPage() {
   const isRecipeToComplete = (recipe) => {
     if (!recipe) return false
 
+    if (recipe.restrictedDetail || recipe.incoherentImport) {
+      return true
+    }
+
     if (recipe.externalOnly) {
       return true
     }

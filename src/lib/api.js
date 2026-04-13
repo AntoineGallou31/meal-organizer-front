@@ -27,6 +27,9 @@ function normalizeRecipe(recipe) {
     createdAt: recipe.createdAt ?? recipe.created_at ?? null,
     type: recipe.type ?? null,
     externalOnly: Boolean(recipe.externalOnly ?? recipe.external_only),
+    incoherentImport: Boolean(recipe.incoherentImport ?? recipe.incoherent_import),
+    restrictedDetail: Boolean(recipe.restrictedDetail ?? recipe.restricted_detail),
+    importValidation: recipe.importValidation ?? recipe.import_validation ?? null,
     categories,
     seasons,
     similarRecipes,
@@ -144,6 +147,7 @@ export const api = {
       body: JSON.stringify({
         url,
         forceImportUnverifiedTitle: Boolean(options.forceImportUnverifiedTitle),
+        forceImportWithIssues: Boolean(options.forceImportWithIssues),
       }),
     })
     return normalizeRecipe(result)
