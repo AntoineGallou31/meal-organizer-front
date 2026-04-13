@@ -212,6 +212,15 @@ export default function ImportRecipePage() {
       />
 
       <Block className="space-y-3 pb-24">
+        <Block className="rounded-2xl bg-sage-50 p-4 ring-1 ring-sage-100">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-sage-900">Choisissez une méthode d'import</p>
+            <p className="text-sm text-sage-700">
+              Vous pouvez importer une recette avec une URL unique, ou charger un fichier JSON contenant une liste d'URLs de recettes.
+            </p>
+          </div>
+        </Block>
+
         <Block className="m-0! p-0">
           <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-cream-200">
             <Button
@@ -228,13 +237,20 @@ export default function ImportRecipePage() {
               className="w-full"
               onClick={() => setMode('pinterest')}
             >
-              Fichier Pinterest
+              Liste JSON
             </Button>
           </div>
         </Block>
 
         {mode === 'url' ? (
           <form onSubmit={handleSubmit}>
+            <Block className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-cream-200">
+              <p className="text-sm font-semibold text-sage-900">Import par URL</p>
+              <p className="mt-1 text-sm text-sage-700">
+                Collez l'adresse de la recette complète. Le lien peut pointer vers un site de cuisine, un blog ou une page article contenant une vraie recette.
+              </p>
+            </Block>
+
             <List strongIos outlineIos>
               <ListInput
                 type="url"
@@ -257,11 +273,31 @@ export default function ImportRecipePage() {
           </form>
         ) : (
           <section>
-            <BlockTitle>Fichier JSON d'URLs</BlockTitle>
+            <BlockTitle>Liste JSON d'URLs</BlockTitle>
+            <Block className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-cream-200">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-sage-900">Format attendu</p>
+                <p className="text-sm text-sage-700">
+                  Le fichier doit être un JSON valide. Le plus simple est un objet contenant une clé <span className="font-semibold">urls</span> avec un tableau d'URLs.
+                </p>
+                <div className="rounded-xl bg-sage-50 p-3 text-xs text-sage-800 ring-1 ring-sage-100">
+                  {`{
+  "urls": [
+    "https://exemple.com/recette-1",
+    "https://exemple.com/recette-2"
+  ]
+}`}
+                </div>
+                <p className="text-sm text-sage-700">
+                  Le contenu peut aussi être imbriqué dans d'autres objets ou tableaux, tant que des chaînes HTTPS/HTTP de recettes sont présentes.
+                </p>
+              </div>
+            </Block>
+
             <List strongIos outlineIos>
               <ListItem
-                title="Sélectionner un fichier JSON"
-                text={'Format conseillé: { "urls": ["https://..."] }'}
+                title="Sélectionner un fichier JSON de recettes"
+                text="Le fichier doit contenir une liste d'URLs de recettes en HTTP ou HTTPS."
                 after={
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-sage-300 px-3 py-2 text-xs font-semibold text-sage-700 transition hover:bg-cream-100">
                     <input
@@ -277,7 +313,7 @@ export default function ImportRecipePage() {
             </List>
 
             {fileName ? (
-              <Block className="text-xs text-sage-700">Fichier charge: {fileName}</Block>
+              <Block className="text-xs text-sage-700">Fichier chargé: {fileName}</Block>
             ) : null}
 
             {fileError ? (
