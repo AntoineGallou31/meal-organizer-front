@@ -74,11 +74,8 @@ export default function ImportRecipePage() {
   const queryClient = useQueryClient()
 
   const importMutation = useMutation({
-    mutationFn: ({ importUrl, forceImportUnverifiedTitle = false }) =>
-      api.importRecipe(importUrl, {
-        forceImportUnverifiedTitle,
-        forceImportWithIssues: forceImportUnverifiedTitle,
-      }),
+    mutationFn: ({ importUrl, forceImportMode = null }) =>
+      api.importRecipe(importUrl, { forceImportMode }),
     onSuccess: (recipe) => {
       setTitleVerificationPrompt(null)
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
@@ -175,6 +172,7 @@ export default function ImportRecipePage() {
   }, [importJob?.id, importStatus, importStatusMutation])
 
   const handleConfirmUnverifiedTitleImport = () => {
+    if (!titleVerificationPrompt) return
     const importUrl =
       titleVerificationPrompt?.scrapedContent?.sourceUrl ||
       titleVerificationPrompt?.recipePreview?.sourceUrl ||
@@ -182,7 +180,20 @@ export default function ImportRecipePage() {
     if (!importUrl) return
     importMutation.mutate({
       importUrl,
-      forceImportUnverifiedTitle: true,
+      forceImportMode: 'incomplete',
+    })
+  }
+
+  const handleImportNormally = () => {
+    if (!titleVerificationPrompt) return
+    const importUrl =
+      titleVerificationPrompt?.scrapedContent?.sourceUrl ||
+      titleVerificationPrompt?.recipePreview?.sourceUrl ||
+      url
+    if (!importUrl) return
+    importMutation.mutate({
+      importUrl,
+      forceImportMode: 'normal',
     })
   }
 
@@ -196,8 +207,10 @@ export default function ImportRecipePage() {
   const fieldErrors = titleVerificationPrompt?.fieldErrors ?? []
   const scrapedContent = titleVerificationPrompt?.scrapedContent ?? null
   const importValidation = titleVerificationPrompt?.importValidation ?? null
+  const validationType = titleVerificationPrompt?.validationType ?? null
+  const canImportNormally = Boolean(titleVerificationPrompt?.canImportNormally)
+  const canForceIncomplete = Boolean(titleVerificationPrompt?.canForceIncomplete)
   const showImportReviewPrompt =
-    titleVerificationPrompt?.code === 'TITLE_NEEDS_VERIFICATION' ||
     titleVerificationPrompt?.code === 'IMPORT_VALIDATION_FAILED'
 
   return (
@@ -430,9 +443,11 @@ export default function ImportRecipePage() {
         {showImportReviewPrompt ? (
           <Block className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-amber-900">Import à confirmer</p>
+              <p className="text-sm font-semibold text-amber-900">Recette suspecte détectée</p>
               <p className="text-sm text-amber-800">
-                Le scraping contient des anomalies sur des champs importants. Vous pouvez annuler ou forcer l'import pour conserver cette recette en mode à compléter.
+                {validationType === 'hard'
+                  ? 'Le titre ou l\'image pose problème. Vous pouvez annuler l\'import ou conserver la recette en statut "à completer".'
+                  : 'Les ingrédients ou la préparation semblent incohérents. Vous pouvez l\'ajouter normalement ou la conserver en statut "à completer".'}
               </p>
             </div>
 
@@ -514,13 +529,28 @@ export default function ImportRecipePage() {
               </List>
             ) : null}
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className={`mt-4 grid gap-2 ${validationType === 'soft' ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <Button tonal type="button" onClick={handleCancelUnverifiedTitleImport} disabled={importMutation.isPending}>
-                Annuler
+                Annuler l'import
               </Button>
-              <Button type="button" onClick={handleConfirmUnverifiedTitleImport} disabled={importMutation.isPending}>
-                Importer quand même
-              </Button>
+
+              {canImportNormally && validationType === 'soft' ? (
+                <Button type="button" onClick={handleImportNormally} disabled={importMutation.isPending}>
+                  Ajouter normalement
+                </Button>
+              ) : null}
+
+              {canForceIncomplete ? (
+                <Button type="button" onClick={handleConfirmUnverifiedTitleImport} disabled={importMutation.isPending}>
+                  Garder en "à completer"
+                </Button>
+              ) : null}
+
+              {!canImportNormally && !canForceIncomplete ? (
+                <Button type="button" onClick={handleCancelUnverifiedTitleImport} disabled={importMutation.isPending} className="w-full">
+                  Fermer
+                </Button>
+              ) : null}
             </div>
           </Block>
         ) : null}

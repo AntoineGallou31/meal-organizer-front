@@ -113,7 +113,7 @@ export default function RecipesPage() {
   const isRecipeToComplete = (recipe) => {
     if (!recipe) return false
 
-    if (recipe.restrictedDetail || recipe.incoherentImport) {
+    if (recipe.restrictedDetail) {
       return true
     }
 
@@ -294,7 +294,7 @@ export default function RecipesPage() {
       ) : null}
 
       <Sheet opened={showFilters} onBackdropClick={() => setShowFilters(false)}>
-        <div className="max-h-[85vh] overflow-y-auto rounded-t-3xl bg-gradient-to-b from-cream-50 via-cream-50 to-white p-4 pb-28">
+        <div className="max-h-[85vh] overflow-y-auto rounded-t-3xl bg-linear-to-b from-cream-50 via-cream-50 to-white p-4 pb-28">
           <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-sage-200" />
 
           <div className="mb-4 flex items-start justify-between gap-3">
@@ -304,7 +304,7 @@ export default function RecipesPage() {
               </div>
             </div>
 
-            <Button clear small className="!text-sage-700" onClick={() => setShowFilters(false)} title="Fermer">
+            <Button clear small className="text-sage-700!" onClick={() => setShowFilters(false)} title="Fermer">
               <X size={18} />
             </Button>
           </div>

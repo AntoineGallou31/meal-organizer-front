@@ -146,8 +146,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({
         url,
-        forceImportUnverifiedTitle: Boolean(options.forceImportUnverifiedTitle),
-        forceImportWithIssues: Boolean(options.forceImportWithIssues),
+        forceImportMode: options.forceImportMode ?? null,
       }),
     })
     return normalizeRecipe(result)

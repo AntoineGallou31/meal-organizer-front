@@ -99,7 +99,7 @@ export default function CalendarPage() {
   const isRecipeToComplete = (recipe) => {
     if (!recipe) return false
 
-    if (recipe.restrictedDetail || recipe.incoherentImport) {
+    if (recipe.restrictedDetail) {
       return true
     }
 
@@ -175,7 +175,7 @@ export default function CalendarPage() {
               <Button
                 clear
                 small
-                className="!text-red-600"
+                className="text-red-600!"
                 title="Supprimer le repas"
                 disabled={removeMealMutation.isPending}
                 onClick={(event) => {
