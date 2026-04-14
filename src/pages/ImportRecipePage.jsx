@@ -171,7 +171,7 @@ export default function ImportRecipePage() {
     }
   }, [importJob?.id, importStatus, importStatusMutation])
 
-  const handleConfirmUnverifiedTitleImport = () => {
+  const handleConfirmIncompleteImport = () => {
     if (!titleVerificationPrompt) return
     const importUrl =
       titleVerificationPrompt?.scrapedContent?.sourceUrl ||
@@ -184,7 +184,7 @@ export default function ImportRecipePage() {
     })
   }
 
-  const handleImportNormally = () => {
+  const handleConfirmContentlessImport = () => {
     if (!titleVerificationPrompt) return
     const importUrl =
       titleVerificationPrompt?.scrapedContent?.sourceUrl ||
@@ -193,7 +193,7 @@ export default function ImportRecipePage() {
     if (!importUrl) return
     importMutation.mutate({
       importUrl,
-      forceImportMode: 'normal',
+      forceImportMode: 'contentless',
     })
   }
 
@@ -208,10 +208,16 @@ export default function ImportRecipePage() {
   const scrapedContent = titleVerificationPrompt?.scrapedContent ?? null
   const importValidation = titleVerificationPrompt?.importValidation ?? null
   const validationType = titleVerificationPrompt?.validationType ?? null
-  const canImportNormally = Boolean(titleVerificationPrompt?.canImportNormally)
   const canForceIncomplete = Boolean(titleVerificationPrompt?.canForceIncomplete)
   const showImportReviewPrompt =
     titleVerificationPrompt?.code === 'IMPORT_VALIDATION_FAILED'
+  const isHardValidation = validationType === 'hard'
+  const reviewTitle = isHardValidation
+    ? 'La récupération de cette recette présente des problèmes'
+    : 'L\'importation de cette recette présente des incohérences'
+  const reviewDescription = isHardValidation
+    ? 'Le titre ou la photo semble incorrect(e). Vous pouvez annuler l\'import, ou importer quand même la recette en statut "à completer".'
+    : 'Les ingrédients ou la préparation semblent incohérents. La recette peut être importée, mais sans ses ingrédients ni sa préparation.'
 
   return (
     <Page>
@@ -443,12 +449,8 @@ export default function ImportRecipePage() {
         {showImportReviewPrompt ? (
           <Block className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-amber-900">Recette suspecte détectée</p>
-              <p className="text-sm text-amber-800">
-                {validationType === 'hard'
-                  ? 'Le titre ou l\'image pose problème. Vous pouvez annuler l\'import ou conserver la recette en statut "à completer".'
-                  : 'Les ingrédients ou la préparation semblent incohérents. Vous pouvez l\'ajouter normalement ou la conserver en statut "à completer".'}
-              </p>
+              <p className="text-sm font-semibold text-amber-900">{reviewTitle}</p>
+              <p className="text-sm text-amber-800">{reviewDescription}</p>
             </div>
 
             <div className="mt-4 grid gap-4 md:grid-cols-[120px_1fr]">
@@ -485,7 +487,7 @@ export default function ImportRecipePage() {
                 />
                 <ListItem title="Mots reconnus" after={matchedKeywords.length ? matchedKeywords.join(', ') : 'Aucun'} />
                 <ListItem
-                  title="Champs manquants"
+                  title="Champs concernés"
                   after={missingFields.length ? missingFields.map(formatMissingFieldLabel).join(', ') : 'Aucun'}
                 />
                 <ListItem
@@ -529,24 +531,24 @@ export default function ImportRecipePage() {
               </List>
             ) : null}
 
-            <div className={`mt-4 grid gap-2 ${validationType === 'soft' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <div className="mt-4 grid gap-2 md:grid-cols-2">
               <Button tonal type="button" onClick={handleCancelUnverifiedTitleImport} disabled={importMutation.isPending}>
                 Annuler l'import
               </Button>
 
-              {canImportNormally && validationType === 'soft' ? (
-                <Button type="button" onClick={handleImportNormally} disabled={importMutation.isPending}>
-                  Ajouter normalement
-                </Button>
-              ) : null}
-
               {canForceIncomplete ? (
-                <Button type="button" onClick={handleConfirmUnverifiedTitleImport} disabled={importMutation.isPending}>
-                  Garder en "à completer"
+                <Button type="button" onClick={handleConfirmIncompleteImport} disabled={importMutation.isPending}>
+                  Importer en "à completer"
                 </Button>
               ) : null}
 
-              {!canImportNormally && !canForceIncomplete ? (
+              {validationType === 'content' ? (
+                <Button type="button" onClick={handleConfirmContentlessImport} disabled={importMutation.isPending}>
+                  Importer sans ingrédients ni préparation
+                </Button>
+              ) : null}
+
+              {!canForceIncomplete && validationType !== 'content' ? (
                 <Button type="button" onClick={handleCancelUnverifiedTitleImport} disabled={importMutation.isPending} className="w-full">
                   Fermer
                 </Button>

@@ -100,6 +100,9 @@ export default function RecipeDetailPage() {
 
   const recipe = recipeQuery.data
   const restrictedDetail = Boolean(recipe?.restrictedDetail)
+  const ingredientCount = (recipe?.ingredients ?? []).length
+  const stepCount = (recipe?.steps ?? []).length
+  const showSourceOnlyDetail = Boolean(recipe && !restrictedDetail && (ingredientCount === 0 || stepCount === 0))
   const upcomingDays = getUpcomingDays(14)
   const baseServings = Number(recipe?.servings)
   const desiredServings = Number(targetServings)
@@ -173,11 +176,11 @@ export default function RecipeDetailPage() {
 
       {recipe && !restrictedDetail ? (
         <Block className="space-y-2 pb-24">
-          <Block strong className="overflow-hidden rounded-2xl bg-white !p-0">
+          <Block strong className="overflow-hidden rounded-2xl bg-white p-0!">
             {recipe.imageUrl ? (
               <img src={recipe.imageUrl} alt={recipe.title} className="h-52 w-full object-cover" />
             ) : (
-              <div className="flex h-52 items-center justify-center bg-gradient-to-br from-sage-200 to-terracotta-200 text-sm font-semibold text-sage-800">
+              <div className="flex h-52 items-center justify-center bg-linear-to-br from-sage-200 to-terracotta-200 text-sm font-semibold text-sage-800">
                 Aucune photo disponible
               </div>
             )}
@@ -200,7 +203,7 @@ export default function RecipeDetailPage() {
                 {recipe.categories.map((category) => (
                   <Chip
                     key={category.id}
-                    className="!text-sage-900"
+                    className="text-sage-900!"
                     style={{ backgroundColor: category.color || '#e5e7eb' }}
                   >
                     {category.name}
@@ -210,71 +213,98 @@ export default function RecipeDetailPage() {
             ) : null}
           </Block>
 
-          <BlockTitle>Ingrédients</BlockTitle>
-          <List inset strong>
-            {Number.isFinite(baseServings) && baseServings > 0 ? (
-              <ListInput
-                label="Portions"
-                type="number"
-                min="1"
-                step="1"
-                value={targetServings}
-                onChange={(event) => setTargetServings(event.target.value)}
-                onFocus={() => {
-                  if (targetServings === '') {
-                    setTargetServings(String(baseServings))
+          {showSourceOnlyDetail ? (
+            <>
+              <BlockTitle>Lien de la recette</BlockTitle>
+              <List inset strong>
+                <ListItem
+                  title="Cette recette ne contient pas de détails exploitables"
+                  text={
+                    recipe.sourceUrl ? (
+                      <a
+                        href={recipe.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="break-all font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                      >
+                        {recipe.sourceUrl}
+                      </a>
+                    ) : (
+                      'Aucun lien source disponible'
+                    )
                   }
-                }}
-              />
-            ) : null}
+                />
+              </List>
+            </>
+          ) : (
+            <>
+              <BlockTitle>Ingrédients</BlockTitle>
+              <List inset strong>
+                {Number.isFinite(baseServings) && baseServings > 0 ? (
+                  <ListInput
+                    label="Portions"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={targetServings}
+                    onChange={(event) => setTargetServings(event.target.value)}
+                    onFocus={() => {
+                      if (targetServings === '') {
+                        setTargetServings(String(baseServings))
+                      }
+                    }}
+                  />
+                ) : null}
 
-            {renderedIngredients.length > 0 ? (
-              renderedIngredients.map((ingredient, index) => (
-                <ListItem key={`${ingredient}-${index}`} title={ingredient} />
-              ))
-            ) : (
-              <ListItem
-                title="Ingrédients indisponibles"
-                text={
-                  recipe.sourceUrl ? (
-                    <a
-                      href={recipe.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
-                    >
-                      Voir la recette originale
-                    </a>
-                  ) : null
-                }
-              />
-            )}
-          </List>
+                {renderedIngredients.length > 0 ? (
+                  renderedIngredients.map((ingredient, index) => (
+                    <ListItem key={`${ingredient}-${index}`} title={ingredient} />
+                  ))
+                ) : (
+                  <ListItem
+                    title="Ingrédients indisponibles"
+                    text={
+                      recipe.sourceUrl ? (
+                        <a
+                          href={recipe.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                        >
+                          Voir la recette originale
+                        </a>
+                      ) : null
+                    }
+                  />
+                )}
+              </List>
 
-          <BlockTitle>Préparation</BlockTitle>
-          <List inset strong>
-            {(recipe.steps ?? []).length > 0 ? (
-              (recipe.steps ?? []).map((step, index) => (
-                <ListItem key={`${step}-${index}`} title={`${index + 1}. ${step}`} />
-              ))
-            ) : (
-              <ListItem
-                title="Étapes de préparation indisponibles"
-                text={
-                  recipe.sourceUrl ? (
-                    <a
-                      href={recipe.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
-                    >
-                      Voir la recette originale
-                    </a>
-                  ) : null
-                }
-              />
-            )}
-          </List>
+              <BlockTitle>Préparation</BlockTitle>
+              <List inset strong>
+                {(recipe.steps ?? []).length > 0 ? (
+                  (recipe.steps ?? []).map((step, index) => (
+                    <ListItem key={`${step}-${index}`} title={`${index + 1}. ${step}`} />
+                  ))
+                ) : (
+                  <ListItem
+                    title="Étapes de préparation indisponibles"
+                    text={
+                      recipe.sourceUrl ? (
+                        <a
+                          href={recipe.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                        >
+                          Voir la recette originale
+                        </a>
+                      ) : null
+                    }
+                  />
+                )}
+              </List>
+            </>
+          )}
 
           <Block className="space-y-2">
             <Button large className="w-full" onClick={() => setPlannerOpen(true)}>
@@ -292,7 +322,7 @@ export default function RecipeDetailPage() {
             <Button
               large
               tonal
-              className="w-full !text-red-700"
+              className="w-full text-red-700!"
               disabled={deleteRecipeMutation.isPending}
               onClick={() => setDeleteConfirmOpen(true)}
             >
@@ -392,7 +422,7 @@ export default function RecipeDetailPage() {
               Annuler
             </Button>
             <Button
-              className="!bg-red-600"
+              className="bg-red-600!"
               disabled={deleteRecipeMutation.isPending || !recipe}
               onClick={() => {
                 if (!recipe) return

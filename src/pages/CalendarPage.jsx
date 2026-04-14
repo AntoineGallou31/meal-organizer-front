@@ -99,11 +99,11 @@ export default function CalendarPage() {
   const isRecipeToComplete = (recipe) => {
     if (!recipe) return false
 
-    if (recipe.restrictedDetail) {
+    if (recipe.incomplete || recipe.importMode === 'incomplete') {
       return true
     }
 
-    if (recipe.externalOnly) {
+    if (recipe.restrictedDetail) {
       return true
     }
 
