@@ -1,6 +1,4 @@
-import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { useLocation } from 'react-router-dom'
 import { App as KonstaApp } from 'konsta/react'
 import BottomNav from './components/BottomNav'
 import CalendarPage from './pages/CalendarPage'

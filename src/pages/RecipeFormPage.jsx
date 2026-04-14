@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, LoaderCircle, Upload, X } from 'lucide-react'
 import {
@@ -68,27 +68,24 @@ function formToPayload(formData) {
   }
 }
 
-export default function RecipeFormPage() {
-  const { id } = useParams()
-  const isEdit = Boolean(id)
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState([])
+function RecipeFormFields({
+  id,
+  isEdit,
+  recipe,
+  categories,
+  categoriesQuery,
+  queryClient,
+  navigate,
+}) {
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState(() =>
+    isEdit ? (recipe?.categories ?? []).map((category) => category.id) : [],
+  )
   const [categoryError, setCategoryError] = useState('')
   const [newCategoryName, setNewCategoryName] = useState('')
-  const [selectedSeasons, setSelectedSeasons] = useState([])
+  const [selectedSeasons, setSelectedSeasons] = useState(() =>
+    isEdit ? (recipe?.seasons ?? []).filter((season) => typeof season === 'string') : [],
+  )
   const [customSeason, setCustomSeason] = useState('')
-
-  const recipeQuery = useQuery({
-    queryKey: ['recipe', id],
-    queryFn: () => api.getRecipeById(id),
-    enabled: isEdit,
-  })
-
-  const categoriesQuery = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.getCategories(false),
-  })
 
   const createCategoryMutation = useMutation({
     mutationFn: async (name) => {
@@ -101,14 +98,6 @@ export default function RecipeFormPage() {
       setNewCategoryName('')
     },
   })
-
-  useEffect(() => {
-    if (!isEdit) return
-    const recipeCategoryIds = (recipeQuery.data?.categories ?? []).map((category) => category.id)
-    setSelectedCategoryIds(recipeCategoryIds)
-    const recipeSeasons = (recipeQuery.data?.seasons ?? []).filter(s => typeof s === 'string')
-    setSelectedSeasons(recipeSeasons)
-  }, [isEdit, recipeQuery.data])
 
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
@@ -134,15 +123,11 @@ export default function RecipeFormPage() {
     },
   })
 
-  const subtitle = useMemo(
-    () => (isEdit ? 'Modifier une recette existante' : 'Créer une recette à la main'),
-    [isEdit],
-  )
   const normalizedCustomSeason = customSeason.trim().toLowerCase()
   const canAddCustomSeason =
     normalizedCustomSeason !== '' && !selectedSeasons.includes(normalizedCustomSeason)
 
-  const defaultValues = recipeToFormDefaults(isEdit ? recipeQuery.data : null)
+  const defaultValues = recipeToFormDefaults(isEdit ? recipe : null)
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -162,7 +147,7 @@ export default function RecipeFormPage() {
     setCategoryError('')
     setSelectedCategoryIds((prev) =>
       prev.includes(categoryId)
-        ? prev.filter((id) => id !== categoryId)
+        ? prev.filter((selectedId) => selectedId !== categoryId)
         : [...prev, categoryId],
     )
   }
@@ -176,7 +161,7 @@ export default function RecipeFormPage() {
   const toggleSeason = (seasonValue) => {
     setSelectedSeasons((prev) =>
       prev.includes(seasonValue)
-        ? prev.filter((s) => s !== seasonValue)
+        ? prev.filter((season) => season !== seasonValue)
         : [...prev, seasonValue],
     )
   }
@@ -188,8 +173,253 @@ export default function RecipeFormPage() {
   }
 
   const removeCustomSeason = (season) => {
-    setSelectedSeasons((prev) => prev.filter((s) => s !== season))
+    setSelectedSeasons((prev) => prev.filter((item) => item !== season))
   }
+
+  return (
+    <form onSubmit={handleSubmit} className="pb-24">
+      <BlockTitle>Informations</BlockTitle>
+      <List strongIos outlineIos>
+        <ListInput type="text" label="Titre" name="title" required defaultValue={defaultValues.title} />
+
+        <ListInput type="number" label="Temps (min)" name="prepTime" min="1" defaultValue={defaultValues.prepTime} />
+
+        <ListInput type="number" label="Portions" name="servings" min="1" defaultValue={defaultValues.servings} />
+
+        <ListInput
+          type="url"
+          label="URL image"
+          name="imageUrl"
+          placeholder="https://..."
+          defaultValue={defaultValues.imageUrl}
+        />
+
+        <ListInput
+          type="url"
+          label="URL source (optionnel)"
+          name="sourceUrl"
+          placeholder="https://..."
+          defaultValue={defaultValues.sourceUrl}
+        />
+
+        <ListInput
+          type="textarea"
+          label="Ingrédients (1 ligne = 1 ingrédient)"
+          name="ingredientsText"
+          required
+          defaultValue={defaultValues.ingredientsText}
+          inputClassName="min-h-28"
+        />
+
+        <ListInput
+          type="textarea"
+          label="Étapes (1 ligne = 1 étape)"
+          name="stepsText"
+          required
+          defaultValue={defaultValues.stepsText}
+          inputClassName="min-h-36"
+        />
+      </List>
+
+      <BlockTitle>Catégories</BlockTitle>
+
+      {categoriesQuery.isLoading ? (
+        <Block className="flex items-center gap-2 py-3 text-sm text-gray-600">
+          <Preloader />
+          <span>Chargement des catégories...</span>
+        </Block>
+      ) : null}
+
+      {categoriesQuery.isError ? (
+        <List inset strong>
+          <ListItem title="Impossible de charger les catégories" footer={categoriesQuery.error?.message} />
+        </List>
+      ) : null}
+
+      {!categoriesQuery.isLoading && !categoriesQuery.isError ? (
+        <>
+          <List strongIos outlineIos>
+            {categories.map((category) => {
+              const checked = selectedCategoryIds.includes(category.id)
+
+              return (
+                <ListItem
+                  key={category.id}
+                  title={category.name}
+                  className={checked ? 'bg-sage-50!' : ''}
+                  onClick={() => toggleCategory(category.id)}
+                  after={
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() => toggleCategory(category.id)}
+                    />
+                  }
+                />
+              )
+            })}
+
+            <ListInput
+              type="text"
+              label="Ajouter une catégorie personnalisée"
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  addNewCategory()
+                }
+              }}
+              placeholder="Ex: Plats sans gluten"
+              disabled={createCategoryMutation.isPending}
+            />
+          </List>
+
+          <div className="px-4 pt-2">
+            <Button
+              tonal
+              type="button"
+              onClick={addNewCategory}
+              disabled={createCategoryMutation.isPending || !newCategoryName.trim()}
+              className="w-full"
+            >
+              {createCategoryMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : 'Ajouter la catégorie'}
+            </Button>
+          </div>
+        </>
+      ) : null}
+
+      {categoryError ? (
+        <List inset strong>
+          <ListItem className="text-red-700!" title={categoryError} />
+        </List>
+      ) : null}
+
+      {createCategoryMutation.isError ? (
+        <List inset strong>
+          <ListItem title="Impossible de créer la catégorie" footer={createCategoryMutation.error?.message} />
+        </List>
+      ) : null}
+
+      {!isEdit && selectedCategoryIds.length === 0 ? (
+        <List inset strong>
+          <ListItem title="Aucune catégorie sélectionnée" footer="Le backend tentera une détection automatique." />
+        </List>
+      ) : null}
+
+      <BlockTitle>Saisonnalité (optionnel)</BlockTitle>
+      <List strongIos outlineIos>
+        {SEASONS.map((season) => {
+          const checked = selectedSeasons.includes(season.value)
+
+          return (
+            <ListItem
+              key={season.id}
+              title={season.label}
+              className={checked ? 'bg-blue-50!' : ''}
+              onClick={() => toggleSeason(season.value)}
+              after={
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={() => toggleSeason(season.value)}
+                />
+              }
+            />
+          )
+        })}
+
+        <ListInput
+          type="text"
+          label="Ajouter une saison personnalisée"
+          value={customSeason}
+          onChange={(event) => setCustomSeason(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              addCustomSeason()
+            }
+          }}
+          placeholder="Ex: printemps tardif"
+        />
+      </List>
+
+      <div className="space-y-3 px-4 pt-2">
+        <Button tonal type="button" onClick={addCustomSeason} disabled={!canAddCustomSeason} className="w-full">
+          Ajouter la saison
+        </Button>
+
+        {normalizedCustomSeason !== '' && !canAddCustomSeason ? (
+          <p className="text-xs text-sage-700">Cette saison est deja selectionnee.</p>
+        ) : null}
+
+        {selectedSeasons.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {selectedSeasons.map((season) => {
+              const isPredefined = SEASONS.some((item) => item.value === season)
+              const label = isPredefined ? SEASONS.find((item) => item.value === season)?.label : season
+
+              return (
+                <Chip
+                  key={season}
+                  className="bg-blue-100! text-blue-800!"
+                  media={
+                    <button
+                      type="button"
+                      onClick={() => removeCustomSeason(season)}
+                      className="inline-flex h-4 w-4 items-center justify-center text-blue-800"
+                      aria-label={`Retirer ${label}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  }
+                >
+                  {label}
+                </Chip>
+              )
+            })}
+          </div>
+        ) : null}
+      </div>
+
+      <Block className="grid grid-cols-2 gap-2">
+        <Button tonal type="button" large disabled={saveMutation.isPending} onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')}>
+          Annuler
+        </Button>
+        <Button type="submit" large disabled={saveMutation.isPending}>
+          <span className="inline-flex items-center gap-2">
+            {saveMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : null}
+            {isEdit ? 'Enregistrer' : 'Créer'}
+          </span>
+        </Button>
+      </Block>
+    </form>
+  )
+}
+
+export default function RecipeFormPage() {
+  const { id } = useParams()
+  const isEdit = Boolean(id)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const recipeQuery = useQuery({
+    queryKey: ['recipe', id],
+    queryFn: () => api.getRecipeById(id),
+    enabled: isEdit,
+  })
+
+  const categoriesQuery = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(false),
+  })
+
+  const subtitle = useMemo(
+    () => (isEdit ? 'Modifier une recette existante' : 'Créer une recette à la main'),
+    [isEdit],
+  )
 
   return (
     <Page>
@@ -228,250 +458,18 @@ export default function RecipeFormPage() {
       ) : null}
 
       {!isEdit || recipeQuery.data ? (
-        <form onSubmit={handleSubmit} className="pb-24">
-          <BlockTitle>Informations</BlockTitle>
-          <List strongIos outlineIos>
-            <ListInput
-              type="text"
-              label="Titre"
-              name="title"
-              required
-              defaultValue={defaultValues.title}
-            />
-
-            <ListInput
-              type="number"
-              label="Temps (min)"
-              name="prepTime"
-              min="1"
-              defaultValue={defaultValues.prepTime}
-            />
-
-            <ListInput
-              type="number"
-              label="Portions"
-              name="servings"
-              min="1"
-              defaultValue={defaultValues.servings}
-            />
-
-            <ListInput
-              type="url"
-              label="URL image"
-              name="imageUrl"
-              placeholder="https://..."
-              defaultValue={defaultValues.imageUrl}
-            />
-
-            <ListInput
-              type="url"
-              label="URL source (optionnel)"
-              name="sourceUrl"
-              placeholder="https://..."
-              defaultValue={defaultValues.sourceUrl}
-            />
-
-            <ListInput
-              type="textarea"
-              label="Ingrédients (1 ligne = 1 ingrédient)"
-              name="ingredientsText"
-              required
-              defaultValue={defaultValues.ingredientsText}
-              inputClassName="min-h-28"
-            />
-
-            <ListInput
-              type="textarea"
-              label="Étapes (1 ligne = 1 étape)"
-              name="stepsText"
-              required
-              defaultValue={defaultValues.stepsText}
-              inputClassName="min-h-36"
-            />
-          </List>
-
-          <BlockTitle>Catégories</BlockTitle>
-
-          {categoriesQuery.isLoading ? (
-            <Block className="flex items-center gap-2 py-3 text-sm text-gray-600">
-              <Preloader />
-              <span>Chargement des catégories...</span>
-            </Block>
-          ) : null}
-
-          {categoriesQuery.isError ? (
-            <List inset strong>
-              <ListItem title="Impossible de charger les catégories" footer={categoriesQuery.error?.message} />
-            </List>
-          ) : null}
-
-          {!categoriesQuery.isLoading && !categoriesQuery.isError ? (
-            <>
-              <List strongIos outlineIos>
-                {(categoriesQuery.data ?? []).map((category) => {
-                  const checked = selectedCategoryIds.includes(category.id)
-
-                  return (
-                    <ListItem
-                      key={category.id}
-                      title={category.name}
-                      className={checked ? '!bg-sage-50' : ''}
-                      onClick={() => toggleCategory(category.id)}
-                      after={
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={() => toggleCategory(category.id)}
-                        />
-                      }
-                    />
-                  )
-                })}
-
-                <ListInput
-                  type="text"
-                  label="Ajouter une catégorie personnalisée"
-                  value={newCategoryName}
-                  onChange={(event) => setNewCategoryName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      addNewCategory()
-                    }
-                  }}
-                  placeholder="Ex: Plats sans gluten"
-                  disabled={createCategoryMutation.isPending}
-                />
-              </List>
-
-              <div className="px-4 pt-2">
-                <Button
-                  tonal
-                  type="button"
-                  onClick={addNewCategory}
-                  disabled={createCategoryMutation.isPending || !newCategoryName.trim()}
-                  className="w-full"
-                >
-                  {createCategoryMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : 'Ajouter la catégorie'}
-                </Button>
-              </div>
-            </>
-          ) : null}
-
-          {categoryError ? (
-            <List inset strong>
-              <ListItem className="!text-red-700" title={categoryError} />
-            </List>
-          ) : null}
-
-          {createCategoryMutation.isError ? (
-            <List inset strong>
-              <ListItem title="Impossible de créer la catégorie" footer={createCategoryMutation.error?.message} />
-            </List>
-          ) : null}
-
-          {!isEdit && selectedCategoryIds.length === 0 ? (
-            <List inset strong>
-              <ListItem title="Aucune catégorie sélectionnée" footer="Le backend tentera une détection automatique." />
-            </List>
-          ) : null}
-
-          <BlockTitle>Saisonnalité (optionnel)</BlockTitle>
-          <List strongIos outlineIos>
-            {SEASONS.map((season) => {
-              const checked = selectedSeasons.includes(season.value)
-
-              return (
-                <ListItem
-                  key={season.id}
-                  title={season.label}
-                  className={checked ? '!bg-blue-50' : ''}
-                  onClick={() => toggleSeason(season.value)}
-                  after={
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={() => toggleSeason(season.value)}
-                    />
-                  }
-                />
-              )
-            })}
-
-            <ListInput
-              type="text"
-              label="Ajouter une saison personnalisée"
-              value={customSeason}
-              onChange={(event) => setCustomSeason(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  addCustomSeason()
-                }
-              }}
-              placeholder="Ex: printemps tardif"
-            />
-          </List>
-
-          <div className="space-y-3 px-4 pt-2">
-            <Button tonal type="button" onClick={addCustomSeason} disabled={!canAddCustomSeason} className="w-full">
-              Ajouter la saison
-            </Button>
-
-            {normalizedCustomSeason !== '' && !canAddCustomSeason ? (
-              <p className="text-xs text-sage-700">Cette saison est deja selectionnee.</p>
-            ) : null}
-
-            {selectedSeasons.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {selectedSeasons.map((season) => {
-                  const isPredefined = SEASONS.some((item) => item.value === season)
-                  const label = isPredefined ? SEASONS.find((item) => item.value === season)?.label : season
-
-                  return (
-                    <Chip
-                      key={season}
-                      className="!bg-blue-100 !text-blue-800"
-                      media={
-                        <button
-                          type="button"
-                          onClick={() => removeCustomSeason(season)}
-                          className="inline-flex h-4 w-4 items-center justify-center text-blue-800"
-                          aria-label={`Retirer ${label}`}
-                        >
-                          <X size={12} />
-                        </button>
-                      }
-                    >
-                      {label}
-                    </Chip>
-                  )
-                })}
-              </div>
-            ) : null}
-          </div>
-
-          <Block className="grid grid-cols-2 gap-2">
-            <Button tonal type="button" large disabled={saveMutation.isPending} onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')}>
-              Annuler
-            </Button>
-            <Button type="submit" large disabled={saveMutation.isPending}>
-              <span className="inline-flex items-center gap-2">
-                {saveMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : null}
-                {isEdit ? 'Enregistrer' : 'Créer'}
-              </span>
-            </Button>
-          </Block>
-        </form>
+        <RecipeFormFields
+          key={isEdit ? recipeQuery.data?.id ?? id : 'new'}
+          id={id}
+          isEdit={isEdit}
+          recipe={recipeQuery.data}
+          categories={(categoriesQuery.data ?? [])}
+          categoriesQuery={categoriesQuery}
+          queryClient={queryClient}
+          navigate={navigate}
+        />
       ) : null}
 
-      {saveMutation.isError ? (
-        <List inset strong>
-          <ListItem title="Impossible d’enregistrer la recette" footer={saveMutation.error?.message} />
-        </List>
-      ) : null}
     </Page>
   )
 }

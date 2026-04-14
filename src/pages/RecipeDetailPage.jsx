@@ -102,10 +102,14 @@ export default function RecipeDetailPage() {
   const restrictedDetail = Boolean(recipe?.restrictedDetail)
   const ingredientCount = (recipe?.ingredients ?? []).length
   const stepCount = (recipe?.steps ?? []).length
-  const showSourceOnlyDetail = Boolean(recipe && !restrictedDetail && (ingredientCount === 0 || stepCount === 0))
+  const showSourceOnlyDetail = Boolean(recipe && (restrictedDetail || ingredientCount === 0 || stepCount === 0))
   const upcomingDays = getUpcomingDays(14)
   const baseServings = Number(recipe?.servings)
   const desiredServings = Number(targetServings)
+  const displayedTargetServings =
+    targetServings === '' && Number.isFinite(baseServings) && baseServings > 0
+      ? String(baseServings)
+      : targetServings
   const scalingRatio =
     Number.isFinite(baseServings) && baseServings > 0 && Number.isFinite(desiredServings) && desiredServings > 0
       ? desiredServings / baseServings
@@ -116,19 +120,8 @@ export default function RecipeDetailPage() {
   )
 
   useEffect(() => {
-    if (Number.isFinite(baseServings) && baseServings > 0) {
-      setTargetServings(String(baseServings))
-    }
-  }, [baseServings])
-
-  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [id])
-
-  useEffect(() => {
-    if (!recipe || !restrictedDetail || !recipe.sourceUrl) return
-    window.location.assign(recipe.sourceUrl)
-  }, [recipe, restrictedDetail])
 
   return (
     <Page>
@@ -154,71 +147,14 @@ export default function RecipeDetailPage() {
         </List>
       ) : null}
 
-      {recipe && restrictedDetail ? (
-        <Block className="pb-24">
-          <Block strong className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900">
-            <div className="space-y-3">
-              <h1 className="text-lg font-semibold">Recette importée non cohérente</h1>
-              <p className="text-sm">
-                Cette recette reste disponible dans vos listes et dans l'agenda, mais la fiche détaillée est bloquée car le contenu importé n'est pas fiable.
-              </p>
-              {recipe.sourceUrl ? (
-                <Button large onClick={() => window.location.assign(recipe.sourceUrl)}>
-                  Ouvrir la recette originale
-                </Button>
-              ) : (
-                <p className="text-sm">Aucune URL source disponible.</p>
-              )}
-            </div>
-          </Block>
-        </Block>
-      ) : null}
-
-      {recipe && !restrictedDetail ? (
+      {recipe ? (
         <Block className="space-y-2 pb-24">
-          <Block strong className="overflow-hidden rounded-2xl bg-white p-0!">
-            {recipe.imageUrl ? (
-              <img src={recipe.imageUrl} alt={recipe.title} className="h-52 w-full object-cover" />
-            ) : (
-              <div className="flex h-52 items-center justify-center bg-linear-to-br from-sage-200 to-terracotta-200 text-sm font-semibold text-sage-800">
-                Aucune photo disponible
-              </div>
-            )}
-
-            <div className="px-4 pt-4">
-              <h1 className="text-xl font-semibold text-sage-900">{recipe.title}</h1>
-            </div>
-
-            <div className="flex flex-wrap gap-4 p-4 text-sm text-sage-700">
-              <span className="inline-flex items-center gap-2">
-                <Clock3 size={15} /> {recipe.prepTime ? `${recipe.prepTime} min` : 'Temps inconnu'}
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <Users size={15} /> {recipe.servings ?? '-'} personnes
-              </span>
-            </div>
-
-            {(recipe.categories ?? []).length > 0 ? (
-              <div className="flex flex-wrap gap-2 px-4 pb-4">
-                {recipe.categories.map((category) => (
-                  <Chip
-                    key={category.id}
-                    className="text-sage-900!"
-                    style={{ backgroundColor: category.color || '#e5e7eb' }}
-                  >
-                    {category.name}
-                  </Chip>
-                ))}
-              </div>
-            ) : null}
-          </Block>
-
           {showSourceOnlyDetail ? (
             <>
               <BlockTitle>Lien de la recette</BlockTitle>
               <List inset strong>
                 <ListItem
-                  title="Cette recette ne contient pas de détails exploitables"
+                  title="Cette recette ne contient pas de details exploitables"
                   text={
                     recipe.sourceUrl ? (
                       <a
@@ -238,6 +174,43 @@ export default function RecipeDetailPage() {
             </>
           ) : (
             <>
+              <Block strong className="overflow-hidden rounded-2xl bg-white p-0!">
+                {recipe.imageUrl ? (
+                  <img src={recipe.imageUrl} alt={recipe.title} className="h-52 w-full object-cover" />
+                ) : (
+                  <div className="flex h-52 items-center justify-center bg-linear-to-br from-sage-200 to-terracotta-200 text-sm font-semibold text-sage-800">
+                    Aucune photo disponible
+                  </div>
+                )}
+
+                <div className="px-4 pt-4">
+                  <h1 className="text-xl font-semibold text-sage-900">{recipe.title}</h1>
+                </div>
+
+                <div className="flex flex-wrap gap-4 p-4 text-sm text-sage-700">
+                  <span className="inline-flex items-center gap-2">
+                    <Clock3 size={15} /> {recipe.prepTime ? `${recipe.prepTime} min` : 'Temps inconnu'}
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Users size={15} /> {recipe.servings ?? '-'} personnes
+                  </span>
+                </div>
+
+                {(recipe.categories ?? []).length > 0 ? (
+                  <div className="flex flex-wrap gap-2 px-4 pb-4">
+                    {recipe.categories.map((category) => (
+                      <Chip
+                        key={category.id}
+                        className="text-sage-900!"
+                        style={{ backgroundColor: category.color || '#e5e7eb' }}
+                      >
+                        {category.name}
+                      </Chip>
+                    ))}
+                  </div>
+                ) : null}
+              </Block>
+
               <BlockTitle>Ingrédients</BlockTitle>
               <List inset strong>
                 {Number.isFinite(baseServings) && baseServings > 0 ? (
@@ -246,7 +219,7 @@ export default function RecipeDetailPage() {
                     type="number"
                     min="1"
                     step="1"
-                    value={targetServings}
+                    value={displayedTargetServings}
                     onChange={(event) => setTargetServings(event.target.value)}
                     onFocus={() => {
                       if (targetServings === '') {
@@ -303,61 +276,61 @@ export default function RecipeDetailPage() {
                   />
                 )}
               </List>
+
+              <Block className="space-y-2">
+                <Button large className="w-full" onClick={() => setPlannerOpen(true)}>
+                  Ajouter au calendrier
+                </Button>
+
+                <Link to={`/recipes/${id}/edit`} className="block">
+                  <Button large tonal className="w-full">
+                    <span className="inline-flex items-center gap-2">
+                      <Pencil size={16} /> Modifier
+                    </span>
+                  </Button>
+                </Link>
+
+                <Button
+                  large
+                  tonal
+                  className="w-full text-red-700!"
+                  disabled={deleteRecipeMutation.isPending}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Trash2 size={16} /> Supprimer
+                  </span>
+                </Button>
+              </Block>
+
+              {assignMealMutation.isError ? (
+                <List inset strong>
+                  <ListItem title="Impossible d’ajouter au planning" footer={assignMealMutation.error?.message} />
+                </List>
+              ) : null}
+
+              {deleteRecipeMutation.isError ? (
+                <List inset strong>
+                  <ListItem title="Impossible de supprimer la recette" footer={deleteRecipeMutation.error?.message} />
+                </List>
+              ) : null}
+
+              {(recipe.similarRecipes ?? []).length > 0 ? (
+                <>
+                  <BlockTitle>Recettes similaires</BlockTitle>
+                  <List inset strong>
+                    {recipe.similarRecipes.map((similarRecipe) => (
+                      <ListItem
+                        key={similarRecipe.id}
+                        title={similarRecipe.title}
+                        onClick={() => navigate(`/recipes/${similarRecipe.id}`)}
+                      />
+                    ))}
+                  </List>
+                </>
+              ) : null}
             </>
           )}
-
-          <Block className="space-y-2">
-            <Button large className="w-full" onClick={() => setPlannerOpen(true)}>
-              Ajouter au calendrier
-            </Button>
-
-            <Link to={`/recipes/${id}/edit`} className="block">
-              <Button large tonal className="w-full">
-                <span className="inline-flex items-center gap-2">
-                  <Pencil size={16} /> Modifier
-                </span>
-              </Button>
-            </Link>
-
-            <Button
-              large
-              tonal
-              className="w-full text-red-700!"
-              disabled={deleteRecipeMutation.isPending}
-              onClick={() => setDeleteConfirmOpen(true)}
-            >
-              <span className="inline-flex items-center gap-2">
-                <Trash2 size={16} /> Supprimer
-              </span>
-            </Button>
-          </Block>
-
-          {assignMealMutation.isError ? (
-            <List inset strong>
-              <ListItem title="Impossible d’ajouter au planning" footer={assignMealMutation.error?.message} />
-            </List>
-          ) : null}
-
-          {deleteRecipeMutation.isError ? (
-            <List inset strong>
-              <ListItem title="Impossible de supprimer la recette" footer={deleteRecipeMutation.error?.message} />
-            </List>
-          ) : null}
-
-          {(recipe.similarRecipes ?? []).length > 0 ? (
-            <>
-              <BlockTitle>Recettes similaires</BlockTitle>
-              <List inset strong>
-                {recipe.similarRecipes.map((similarRecipe) => (
-                  <ListItem
-                    key={similarRecipe.id}
-                    title={similarRecipe.title}
-                    onClick={() => navigate(`/recipes/${similarRecipe.id}`)}
-                  />
-                ))}
-              </List>
-            </>
-          ) : null}
         </Block>
       ) : null}
 
