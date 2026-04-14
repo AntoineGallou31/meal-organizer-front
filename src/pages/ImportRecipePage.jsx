@@ -121,6 +121,15 @@ export default function ImportRecipePage() {
     },
   })
 
+  const resolveImportIssueMutation = useMutation({
+    mutationFn: ({ importUrl, forceImportMode }) =>
+      api.importRecipe(importUrl, { forceImportMode }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      if (importJob?.id) importStatusMutation.mutate(importJob.id)
+    },
+  })
+
   const handleSubmit = (event) => {
     event.preventDefault()
     if (mode !== 'url') return
@@ -158,6 +167,17 @@ export default function ImportRecipePage() {
   const refreshImportStatus = () => {
     if (!importJob?.id) return
     importStatusMutation.mutate(importJob.id)
+  }
+
+  const handleResolveImportIssue = (errorItem, forceImportMode) => {
+    const importUrl =
+      errorItem?.details?.scrapedContent?.sourceUrl ||
+      errorItem?.url ||
+      null
+
+    if (!importUrl) return
+
+    resolveImportIssueMutation.mutate({ importUrl, forceImportMode })
   }
 
   useEffect(() => {
@@ -422,21 +442,72 @@ export default function ImportRecipePage() {
 
                     {Array.isArray(importStatus?.results?.errors) && importStatus.results.errors.length > 0 ? (
                       <List inset strong className="mt-3">
-                        {importStatus.results.errors.slice(0, 3).map((errorItem, index) => {
+                        {importStatus.results.errors.map((errorItem, index) => {
                           const errorDetails = errorItem?.details ?? null
+                          const validationType = errorDetails?.validationType ?? null
+                          const canForceIncomplete = Boolean(errorDetails?.canForceIncomplete)
+                          const canImportWithoutContent = Boolean(errorDetails?.canImportWithoutContent)
+                          const importReasons = Array.isArray(errorDetails?.importValidation?.reasons)
+                            ? errorDetails.importValidation.reasons
+                            : []
                           const fieldErrorText = Array.isArray(errorDetails?.fieldErrors)
                             ? errorDetails.fieldErrors.map((entry) => `${formatMissingFieldLabel(entry.field)}: ${entry.message}`).join('\n')
                             : ''
+                          const debugLines = [
+                            errorItem?.code ? `Code: ${errorItem.code}` : null,
+                            errorDetails?.importValidation?.score != null
+                              ? `Score cohérence: ${errorDetails.importValidation.score}`
+                              : null,
+                            fieldErrorText || null,
+                            importReasons.length ? `Raisons: ${importReasons.join(' | ')}` : null,
+                          ].filter(Boolean).join('\n')
 
                           return (
-                            <ListItem
-                              key={`${errorItem.url || 'unknown'}-${index}`}
-                              title={errorItem.url || 'URL inconnue'}
-                              footer={errorItem.message || 'Erreur d\'import'}
-                              text={fieldErrorText || null}
-                            />
+                            <div key={`${errorItem.url || 'unknown'}-${index}`} className="space-y-2">
+                              <ListItem
+                                title={errorItem.url || 'URL inconnue'}
+                                footer={errorItem.message || 'Erreur d\'import'}
+                                text={debugLines || null}
+                              />
+
+                              {(canForceIncomplete || canImportWithoutContent) ? (
+                                <div className="grid gap-2 md:grid-cols-2">
+                                  {canForceIncomplete ? (
+                                    <Button
+                                      small
+                                      type="button"
+                                      onClick={() => handleResolveImportIssue(errorItem, 'incomplete')}
+                                      disabled={resolveImportIssueMutation.isPending}
+                                    >
+                                      Importer en "à completer"
+                                    </Button>
+                                  ) : null}
+
+                                  {(validationType === 'content' || canImportWithoutContent) ? (
+                                    <Button
+                                      small
+                                      type="button"
+                                      tonal
+                                      onClick={() => handleResolveImportIssue(errorItem, 'contentless')}
+                                      disabled={resolveImportIssueMutation.isPending}
+                                    >
+                                      Importer sans contenu
+                                    </Button>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
                           )
                         })}
+                      </List>
+                    ) : null}
+
+                    {resolveImportIssueMutation.isError ? (
+                      <List inset strong className="mt-3">
+                        <ListItem
+                          title="Impossible d'appliquer le choix d'import"
+                          footer={resolveImportIssueMutation.error?.message}
+                        />
                       </List>
                     ) : null}
                   </>
