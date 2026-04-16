@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Filter, Plus, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -61,6 +61,19 @@ const CHIP_COLORS = [
   'bg-pink-100 text-pink-700',
 ]
 
+const RECIPES_PAGE_SIZE = 24
+
+function useDebouncedValue(value, delay = 250) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValue(value), delay)
+    return () => window.clearTimeout(timer)
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 export default function RecipesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -72,6 +85,7 @@ export default function RecipesPage() {
   const [prepMax, setPrepMax] = useState('')
   const [sort, setSort] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
+  const loadMoreRef = useRef(null)
   const selectionMode = searchParams.get('mode') === 'select'
   const selectedDate = searchParams.get('date') ?? ''
   const selectedSlot = searchParams.get('slot') ?? ''
@@ -94,9 +108,18 @@ export default function RecipesPage() {
     [search, selectedCategoryId, ingredient, selectedMonth, prepMax, sort],
   )
 
-  const recipesQuery = useQuery({
-    queryKey: ['recipes', recipeFilters],
-    queryFn: () => api.getRecipes(recipeFilters),
+  const debouncedRecipeFilters = useDebouncedValue(recipeFilters, 250)
+
+  const recipesQuery = useInfiniteQuery({
+    queryKey: ['recipes', debouncedRecipeFilters],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      api.getRecipesPage({
+        ...debouncedRecipeFilters,
+        page: pageParam,
+        limit: RECIPES_PAGE_SIZE,
+      }),
+    getNextPageParam: (lastPage) => (lastPage?.hasMore ? lastPage.page + 1 : undefined),
   })
 
   const pickRecipeMutation = useMutation({
@@ -107,10 +130,14 @@ export default function RecipesPage() {
     },
   })
 
-  const filteredRecipes = recipesQuery.data ?? []
+  const filteredRecipes = recipesQuery.data?.pages.flatMap((page) => page.items ?? []) ?? []
   const categories = categoriesQuery.data ?? []
+  const hasNextPage = recipesQuery.hasNextPage
+  const isFetchingNextPage = recipesQuery.isFetchingNextPage
+  const fetchNextPage = recipesQuery.fetchNextPage
 
   const hasActiveFilters =
+    search.trim() !== '' ||
     selectedCategoryId !== '' ||
     selectedMonth !== '' ||
     ingredient.trim() !== '' ||
@@ -118,6 +145,7 @@ export default function RecipesPage() {
     sort !== 'newest'
 
   const clearFilters = () => {
+    setSearch('')
     setSelectedCategoryId('')
     setSelectedMonth('')
     setIngredient('')
@@ -137,6 +165,28 @@ export default function RecipesPage() {
       recipeId: recipe.id,
     })
   }
+
+  useEffect(() => {
+    const node = loadMoreRef.current
+    if (!node) return undefined
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries
+        if (!entry?.isIntersecting) return
+        if (!hasNextPage || isFetchingNextPage) return
+        fetchNextPage()
+      },
+      {
+        root: null,
+        rootMargin: '240px 0px',
+        threshold: 0,
+      },
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   return (
     <Page>
@@ -161,26 +211,26 @@ export default function RecipesPage() {
       />
 
       <div className="flex items-center gap-2 px-4 py-4">
-          <Searchbar
-            placeholder="Rechercher une recette"
-            value={search}
-            onChange={(valueOrEvent) =>
-              setSearch(
-                typeof valueOrEvent === 'string' ? valueOrEvent : (valueOrEvent?.target?.value ?? ''),
-              )
-            }
-            disableButton={!search}
-            onDisableButtonClick={() => setSearch('')}
-          />
-          <Fab
-            small
-            tonal={!hasActiveFilters}
-            onClick={() => setShowFilters(true)}
-            title="Filtres"
-            className="rounded-full"
-          >
-            <Filter size={18} />
-          </Fab>
+        <Searchbar
+          placeholder="Rechercher une recette"
+          value={search}
+          onChange={(valueOrEvent) =>
+            setSearch(
+              typeof valueOrEvent === 'string' ? valueOrEvent : (valueOrEvent?.target?.value ?? ''),
+            )
+          }
+          disableButton={!search}
+          onDisableButtonClick={() => setSearch('')}
+        />
+        <Fab
+          small
+          tonal={!hasActiveFilters}
+          onClick={() => setShowFilters(true)}
+          title="Filtres"
+          className="rounded-full"
+        >
+          <Filter size={18} />
+        </Fab>
       </div>
 
       <div className="px-4 pb-3">
@@ -240,17 +290,31 @@ export default function RecipesPage() {
 
       {!recipesQuery.isLoading && !recipesQuery.isError ? (
         filteredRecipes.length ? (
-          <div className="columns-2 gap-3 px-4 pb-24 sm:columns-3">
-            {filteredRecipes.map((recipe) => (
-              <RecipeTile
-                key={recipe.id}
-                recipe={recipe}
-                selectionMode={selectionMode}
-                disabled={pickRecipeMutation.isPending}
-                onPick={handleRecipeClick}
-              />
-            ))}
-          </div>
+          <>
+            <div className="columns-2 gap-3 px-4 pb-6 sm:columns-3">
+              {filteredRecipes.map((recipe) => (
+                <RecipeTile
+                  key={recipe.id}
+                  recipe={recipe}
+                  selectionMode={selectionMode}
+                  disabled={pickRecipeMutation.isPending}
+                  onPick={handleRecipeClick}
+                />
+              ))}
+            </div>
+
+            {hasNextPage ? <div ref={loadMoreRef} className="h-8" aria-hidden="true" /> : null}
+
+            {recipesQuery.isFetching && !recipesQuery.isFetchingNextPage ? (
+              <div className="px-4 pb-4 text-center text-xs text-gray-500">Mise à jour des résultats...</div>
+            ) : null}
+
+            {isFetchingNextPage ? (
+              <div className="px-4 pb-24 text-center text-xs text-gray-500">Chargement de nouvelles recettes...</div>
+            ) : (
+              <div className="pb-24" />
+            )}
+          </>
         ) : (
           <List inset strong>
             <ListItem title="Aucune recette ne correspond à la recherche" />

@@ -7,7 +7,9 @@ function normalizeRecipe(recipe) {
 
   const categories = Array.isArray(recipe.categories)
     ? recipe.categories
-    : []
+    : Array.isArray(recipe.recipe_categories)
+      ? recipe.recipe_categories.map((relation) => relation?.categories).filter(Boolean)
+      : []
 
   const months = Array.isArray(recipe.months)
     ? recipe.months
@@ -63,6 +65,22 @@ function toQueryString(params = {}) {
 
   const query = searchParams.toString()
   return query ? `?${query}` : ''
+}
+
+function normalizeRecipeListResponse(data) {
+  if (Array.isArray(data)) {
+    return {
+      items: data.map(normalizeRecipe),
+      page: 1,
+      limit: data.length,
+      hasMore: false,
+    }
+  }
+
+  return {
+    ...data,
+    items: Array.isArray(data?.items) ? data.items.map(normalizeRecipe) : [],
+  }
 }
 
 function normalizeMealPlanDays(data) {
@@ -145,6 +163,7 @@ export const api = {
     const data = await apiRequest(`/api/recipes${toQueryString(filters)}`)
     return Array.isArray(data) ? data.map(normalizeRecipe) : data
   },
+  getRecipesPage: async (filters = {}) => normalizeRecipeListResponse(await apiRequest(`/api/recipes${toQueryString(filters)}`)),
   getRecipeById: async (id) => normalizeRecipe(await apiRequest(`/api/recipes/${id}`)),
   createRecipe: async (payload) => normalizeRecipe(await apiRequest('/api/recipes', {
     method: 'POST',
@@ -187,13 +206,4 @@ export const api = {
     const data = await apiRequest(`/api/categories/${categoryId}/recipes${toQueryString({ search })}`)
     return Array.isArray(data) ? data.map(normalizeRecipe) : data
   },
-  importUrlsJson: (payload) => apiRequest('/api/recipes/import-urls', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }),
-  getImportStatus: (jobId) => apiRequest(`/api/recipes/import-status/${jobId}`),
-  cancelImport: (jobId) => apiRequest('/api/recipes/import-cancel', {
-    method: 'POST',
-    body: JSON.stringify({ jobId }),
-  }),
 }

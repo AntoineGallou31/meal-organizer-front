@@ -30,6 +30,7 @@ export default function CalendarPage() {
   const mealPlanQuery = useQuery({
     queryKey: ['meal-plan', weekKey],
     queryFn: () => api.getMealPlan(weekKey),
+    placeholderData: (previousData) => previousData,
   })
 
   const assignMealMutation = useMutation({
@@ -118,20 +119,15 @@ export default function CalendarPage() {
     })
   }
 
-  const openMealRecipe = async (recipeId) => {
-    if (!recipeId) return
+  const openMealRecipe = (recipe) => {
+    if (!recipe?.id) return
 
-    try {
-      const recipe = await api.getRecipeById(recipeId)
-      if (isRecipeToComplete(recipe) && recipe.sourceUrl) {
-        window.location.assign(recipe.sourceUrl)
-        return
-      }
-    } catch {
-      // Fallback to local detail page when API lookup fails.
+    if (isRecipeToComplete(recipe) && recipe.sourceUrl) {
+      window.location.assign(recipe.sourceUrl)
+      return
     }
 
-    navigate(`/recipes/${recipeId}`)
+    navigate(`/recipes/${recipe.id}`)
   }
 
   const renderSlotItem = (day, slot, label) => {
@@ -208,7 +204,7 @@ export default function CalendarPage() {
           }
 
           if (recipe) {
-            await openMealRecipe(recipe.id)
+            openMealRecipe(recipe)
             return
           }
 
