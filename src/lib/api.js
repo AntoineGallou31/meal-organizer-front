@@ -9,9 +9,19 @@ function normalizeRecipe(recipe) {
     ? recipe.categories
     : []
 
-  const seasons = Array.isArray(recipe.seasons)
-    ? recipe.seasons
-    : []
+  const months = Array.isArray(recipe.months)
+    ? recipe.months
+    : Array.isArray(recipe.seasons)
+      ? recipe.seasons
+      : []
+
+  const instructions = Array.isArray(recipe.instructions)
+    ? recipe.instructions
+    : Array.isArray(recipe.steps)
+      ? recipe.steps
+      : []
+
+  const primaryCategory = recipe.category ?? categories.find((category) => category && !category.is_default)?.name ?? categories[0]?.name ?? null
 
   const similarRecipes = Array.isArray(recipe.similar_recipes)
     ? recipe.similar_recipes.map(normalizeRecipe)
@@ -21,8 +31,11 @@ function normalizeRecipe(recipe) {
 
   return {
     ...recipe,
+    image: recipe.image ?? recipe.imageUrl ?? recipe.image_url ?? null,
     imageUrl: recipe.imageUrl ?? recipe.image_url ?? null,
+    category: primaryCategory,
     prepTime: recipe.prepTime ?? recipe.prep_time ?? null,
+    duration: recipe.duration ?? recipe.prepTime ?? recipe.prep_time ?? null,
     sourceUrl: recipe.sourceUrl ?? recipe.source_url ?? null,
     createdAt: recipe.createdAt ?? recipe.created_at ?? null,
     type: recipe.type ?? null,
@@ -31,7 +44,10 @@ function normalizeRecipe(recipe) {
     restrictedDetail: Boolean(recipe.restrictedDetail ?? recipe.restricted_detail),
     importValidation: recipe.importValidation ?? recipe.import_validation ?? null,
     categories,
-    seasons,
+    months,
+    instructions,
+    steps: instructions,
+    confidence: recipe.confidence ?? null,
     similarRecipes,
   }
 }

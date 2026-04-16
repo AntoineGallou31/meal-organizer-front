@@ -70,19 +70,50 @@ export const MEAL_TYPES = [
   { id: 'other', label: 'Autre', color: 'gray' },
 ]
 
-export const SEASONS = [
-  { id: 'spring', label: 'Printemps (Mar-Mai)', value: 'spring' },
-  { id: 'summer', label: 'Été (Juin-Août)', value: 'summer' },
-  { id: 'autumn', label: 'Automne (Sept-Nov)', value: 'autumn' },
-  { id: 'winter', label: 'Hiver (Déc-Fév)', value: 'winter' },
+export const MONTHS = [
+  { id: 'Janvier', label: 'Janvier', value: 'Janvier', number: 1 },
+  { id: 'Février', label: 'Février', value: 'Février', number: 2 },
+  { id: 'Mars', label: 'Mars', value: 'Mars', number: 3 },
+  { id: 'Avril', label: 'Avril', value: 'Avril', number: 4 },
+  { id: 'Mai', label: 'Mai', value: 'Mai', number: 5 },
+  { id: 'Juin', label: 'Juin', value: 'Juin', number: 6 },
+  { id: 'Juillet', label: 'Juillet', value: 'Juillet', number: 7 },
+  { id: 'Août', label: 'Août', value: 'Août', number: 8 },
+  { id: 'Septembre', label: 'Septembre', value: 'Septembre', number: 9 },
+  { id: 'Octobre', label: 'Octobre', value: 'Octobre', number: 10 },
+  { id: 'Novembre', label: 'Novembre', value: 'Novembre', number: 11 },
+  { id: 'Décembre', label: 'Décembre', value: 'Décembre', number: 12 },
 ]
 
+// Legacy support for seasons (converting to months)
+export const SEASONS = [
+  { id: 'spring', label: 'Printemps (Mar-Mai)', value: 'spring', months: ['Mars', 'Avril', 'Mai'] },
+  { id: 'summer', label: 'Été (Juin-Août)', value: 'summer', months: ['Juin', 'Juillet', 'Août'] },
+  { id: 'autumn', label: 'Automne (Sept-Nov)', value: 'autumn', months: ['Septembre', 'Octobre', 'Novembre'] },
+  { id: 'winter', label: 'Hiver (Déc-Fév)', value: 'winter', months: ['Décembre', 'Janvier', 'Février'] },
+]
+
+export function getMonthName(monthNumber) {
+  // monthNumber is 1-12
+  const month = MONTHS.find(m => m.number === monthNumber)
+  return month ? month.label : null
+}
+
+export function getMonthNumber(monthName) {
+  const month = MONTHS.find(m => m.label === monthName)
+  return month ? month.number : null
+}
+
 export function getSeasonForMonth(month) {
-  // month is 1-12
+  // month is 1-12, returns legacy season name for backward compatibility
   if (month >= 3 && month <= 5) return 'spring'
   if (month >= 6 && month <= 8) return 'summer'
   if (month >= 9 && month <= 11) return 'autumn'
   return 'winter' // 12, 1, 2
+}
+
+export function getCurrentMonth() {
+  return MONTHS[new Date().getMonth()]
 }
 
 export function getCurrentSeason() {

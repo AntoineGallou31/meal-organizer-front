@@ -16,7 +16,7 @@ import {
 } from 'konsta/react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
-import { SEASONS } from '../lib/seasonality'
+import { MONTHS } from '../lib/seasonality'
 
 function recipeToFormDefaults(recipe) {
   if (!recipe) {
@@ -33,16 +33,16 @@ function recipeToFormDefaults(recipe) {
 
   return {
     title: recipe.title ?? '',
-    imageUrl: recipe.imageUrl ?? '',
-    prepTime: recipe.prepTime ?? '',
+    imageUrl: recipe.imageUrl ?? recipe.image ?? '',
+    prepTime: recipe.prepTime ?? recipe.duration ?? '',
     servings: recipe.servings ?? '',
     sourceUrl: recipe.sourceUrl ?? '',
     ingredientsText: (recipe.ingredients ?? []).join('\n'),
-    stepsText: (recipe.steps ?? []).join('\n'),
+    stepsText: (recipe.instructions ?? recipe.steps ?? []).join('\n'),
   }
 }
 
-function formToPayload(formData) {
+function formToPayload(formData, { categories = [], selectedCategoryIds = [] } = {}) {
   const title = String(formData.get('title') ?? '').trim()
   const imageUrl = String(formData.get('imageUrl') ?? '').trim()
   const prepTime = String(formData.get('prepTime') ?? '').trim()
@@ -51,9 +51,16 @@ function formToPayload(formData) {
   const ingredientsText = String(formData.get('ingredientsText') ?? '')
   const stepsText = String(formData.get('stepsText') ?? '')
 
+  const primaryCategoryId = selectedCategoryIds[0] ?? null
+  const primaryCategory = primaryCategoryId
+    ? categories.find((category) => category.id === primaryCategoryId) ?? null
+    : null
+
   return {
     title,
+    image: imageUrl || null,
     imageUrl: imageUrl || null,
+    duration: prepTime === '' ? null : Number(prepTime),
     prepTime: prepTime === '' ? null : Number(prepTime),
     servings: servings === '' ? null : Number(servings),
     sourceUrl: sourceUrl || null,
@@ -61,10 +68,18 @@ function formToPayload(formData) {
       .split('\n')
       .map((item) => item.trim())
       .filter(Boolean),
+    instructions: stepsText
+      .split('\n')
+      .map((item) => item.trim())
+      .filter(Boolean),
     steps: stepsText
       .split('\n')
       .map((item) => item.trim())
       .filter(Boolean),
+    category: primaryCategory?.name ?? null,
+    categories: primaryCategory ? [primaryCategory.name] : [],
+    months: [],
+    confidence: null,
   }
 }
 
@@ -82,10 +97,9 @@ function RecipeFormFields({
   )
   const [categoryError, setCategoryError] = useState('')
   const [newCategoryName, setNewCategoryName] = useState('')
-  const [selectedSeasons, setSelectedSeasons] = useState(() =>
-    isEdit ? (recipe?.seasons ?? []).filter((season) => typeof season === 'string') : [],
+  const [selectedMonths, setSelectedMonths] = useState(() =>
+    isEdit ? (recipe?.months ?? []).filter((month) => typeof month === 'string') : [],
   )
-  const [customSeason, setCustomSeason] = useState('')
 
   const createCategoryMutation = useMutation({
     mutationFn: async (name) => {
@@ -123,10 +137,6 @@ function RecipeFormFields({
     },
   })
 
-  const normalizedCustomSeason = customSeason.trim().toLowerCase()
-  const canAddCustomSeason =
-    normalizedCustomSeason !== '' && !selectedSeasons.includes(normalizedCustomSeason)
-
   const defaultValues = recipeToFormDefaults(isEdit ? recipe : null)
 
   const handleSubmit = (event) => {
@@ -139,8 +149,11 @@ function RecipeFormFields({
     if (createCategoryMutation.isPending) {
       return
     }
-    const payload = formToPayload(new FormData(event.currentTarget))
-    saveMutation.mutate({ ...payload, seasons: selectedSeasons })
+    const payload = formToPayload(new FormData(event.currentTarget), {
+      categories,
+      selectedCategoryIds,
+    })
+    saveMutation.mutate({ ...payload, months: selectedMonths })
   }
 
   const toggleCategory = (categoryId) => {
@@ -158,22 +171,16 @@ function RecipeFormFields({
     createCategoryMutation.mutate(trimmed)
   }
 
-  const toggleSeason = (seasonValue) => {
-    setSelectedSeasons((prev) =>
-      prev.includes(seasonValue)
-        ? prev.filter((season) => season !== seasonValue)
-        : [...prev, seasonValue],
+  const toggleMonth = (monthValue) => {
+    setSelectedMonths((prev) =>
+      prev.includes(monthValue)
+        ? prev.filter((month) => month !== monthValue)
+        : [...prev, monthValue],
     )
   }
 
-  const addCustomSeason = () => {
-    if (!canAddCustomSeason) return
-    setSelectedSeasons((prev) => [...prev, normalizedCustomSeason])
-    setCustomSeason('')
-  }
-
-  const removeCustomSeason = (season) => {
-    setSelectedSeasons((prev) => prev.filter((item) => item !== season))
+  const removeMonth = (month) => {
+    setSelectedMonths((prev) => prev.filter((item) => item !== month))
   }
 
   return (
@@ -308,67 +315,45 @@ function RecipeFormFields({
         </List>
       ) : null}
 
-      <BlockTitle>Saisonnalité (optionnel)</BlockTitle>
+      <BlockTitle>Mois de disponibilité (optionnel)</BlockTitle>
       <List strongIos outlineIos>
-        {SEASONS.map((season) => {
-          const checked = selectedSeasons.includes(season.value)
+        {MONTHS.map((month) => {
+          const checked = selectedMonths.includes(month.value)
 
           return (
             <ListItem
-              key={season.id}
-              title={season.label}
+              key={month.id}
+              title={month.label}
               className={checked ? 'bg-blue-50!' : ''}
-              onClick={() => toggleSeason(season.value)}
+              onClick={() => toggleMonth(month.value)}
               after={
                 <input
                   type="checkbox"
                   checked={checked}
                   onClick={(event) => event.stopPropagation()}
-                  onChange={() => toggleSeason(season.value)}
+                  onChange={() => toggleMonth(month.value)}
                 />
               }
             />
           )
         })}
-
-        <ListInput
-          type="text"
-          label="Ajouter une saison personnalisée"
-          value={customSeason}
-          onChange={(event) => setCustomSeason(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              addCustomSeason()
-            }
-          }}
-          placeholder="Ex: printemps tardif"
-        />
       </List>
 
-      <div className="space-y-3 px-4 pt-2">
-        <Button tonal type="button" onClick={addCustomSeason} disabled={!canAddCustomSeason} className="w-full">
-          Ajouter la saison
-        </Button>
-
-        {normalizedCustomSeason !== '' && !canAddCustomSeason ? (
-          <p className="text-xs text-sage-700">Cette saison est deja selectionnee.</p>
-        ) : null}
-
-        {selectedSeasons.length > 0 ? (
+      {selectedMonths.length > 0 ? (
+        <div className="space-y-3 px-4 pt-2">
           <div className="flex flex-wrap gap-2">
-            {selectedSeasons.map((season) => {
-              const isPredefined = SEASONS.some((item) => item.value === season)
-              const label = isPredefined ? SEASONS.find((item) => item.value === season)?.label : season
+            {selectedMonths.map((month) => {
+              const monthData = MONTHS.find((item) => item.value === month)
+              const label = monthData ? monthData.label : month
 
               return (
                 <Chip
-                  key={season}
+                  key={month}
                   className="bg-blue-100! text-blue-800!"
                   media={
                     <button
                       type="button"
-                      onClick={() => removeCustomSeason(season)}
+                      onClick={() => removeMonth(month)}
                       className="inline-flex h-4 w-4 items-center justify-center text-blue-800"
                       aria-label={`Retirer ${label}`}
                     >
@@ -381,8 +366,8 @@ function RecipeFormFields({
               )
             })}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <Block className="grid grid-cols-2 gap-2">
         <Button tonal type="button" large disabled={saveMutation.isPending} onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')}>

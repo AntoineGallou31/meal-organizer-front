@@ -16,7 +16,7 @@ import {
   Sheet,
 } from 'konsta/react'
 import { api } from '../lib/api'
-import { SEASONS } from '../lib/seasonality'
+import { MONTHS } from '../lib/seasonality'
 
 function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
   const classes = 'mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl bg-white text-left'
@@ -67,7 +67,7 @@ export default function RecipesPage() {
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
-  const [selectedSeason, setSelectedSeason] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('')
   const [ingredient, setIngredient] = useState('')
   const [prepMax, setPrepMax] = useState('')
   const [sort, setSort] = useState('newest')
@@ -87,11 +87,11 @@ export default function RecipesPage() {
       search,
       categoryId: selectedCategoryId,
       ingredient,
-      season: selectedSeason,
+      month: selectedMonth,
       prepMax,
       sort,
     }),
-    [search, selectedCategoryId, ingredient, selectedSeason, prepMax, sort],
+    [search, selectedCategoryId, ingredient, selectedMonth, prepMax, sort],
   )
 
   const recipesQuery = useQuery({
@@ -112,14 +112,14 @@ export default function RecipesPage() {
 
   const hasActiveFilters =
     selectedCategoryId !== '' ||
-    selectedSeason !== '' ||
+    selectedMonth !== '' ||
     ingredient.trim() !== '' ||
     prepMax.trim() !== '' ||
     sort !== 'newest'
 
   const clearFilters = () => {
     setSelectedCategoryId('')
-    setSelectedSeason('')
+    setSelectedMonth('')
     setIngredient('')
     setPrepMax('')
     setSort('newest')
@@ -297,15 +297,15 @@ export default function RecipesPage() {
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-sage-600">Classement</div>
           <List strongIos outlineIos className="overflow-hidden rounded-2xl">
             <ListInput
-              label="Saisonnalité"
+              label="Mois"
               type="select"
-              value={selectedSeason}
-              onChange={(event) => setSelectedSeason(event.target.value)}
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
             >
-              <option value="">Toutes saisons</option>
-              {SEASONS.map((season) => (
-                <option key={season.id} value={season.value}>
-                  {season.label}
+              <option value="">Tous les mois</option>
+              {MONTHS.map((month) => (
+                <option key={month.id} value={month.value}>
+                  {month.label}
                 </option>
               ))}
             </ListInput>
