@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Clock3, Pencil, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Clock3, Pencil, Trash2, Users } from 'lucide-react'
 import {
   Block,
   BlockTitle,
@@ -100,6 +100,9 @@ export default function RecipeDetailPage() {
 
   const recipe = recipeQuery.data
   const restrictedDetail = Boolean(recipe?.restrictedDetail)
+  const reliabilityScore = Number(recipe?.confidence)
+  const hasReliabilityScore = Number.isFinite(reliabilityScore)
+  const showReliabilityWarning = hasReliabilityScore && reliabilityScore < 40
   const ingredientCount = (recipe?.ingredients ?? []).length
   const stepCount = (recipe?.steps ?? []).length
   const showSourceOnlyDetail = Boolean(recipe && (restrictedDetail || ingredientCount === 0 || stepCount === 0))
@@ -149,6 +152,20 @@ export default function RecipeDetailPage() {
 
       {recipe ? (
         <Block className="space-y-2 pb-24">
+          {showReliabilityWarning ? (
+            <Block className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900">
+              <div className="flex items-start gap-2 text-sm">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold">Fiabilite de la recette: {Math.round(reliabilityScore)}/100</div>
+                  <p className="mt-1 text-amber-800">
+                    Attention: cette recette n&apos;est peut-etre pas totalement fiable. Verifiez les ingredients et les etapes avant de cuisiner.
+                  </p>
+                </div>
+              </div>
+            </Block>
+          ) : null}
+
           {showSourceOnlyDetail ? (
             <>
               <BlockTitle>Lien de la recette</BlockTitle>
@@ -195,6 +212,20 @@ export default function RecipeDetailPage() {
                     <Users size={15} /> {recipe.servings ?? '-'} personnes
                   </span>
                 </div>
+
+                {recipe.sourceUrl ? (
+                  <div className="px-4 pb-4 text-sm text-sage-700">
+                    <div className="mb-1 font-medium text-sage-800">Lien de la recette</div>
+                    <a
+                      href={recipe.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                    >
+                      {recipe.sourceUrl}
+                    </a>
+                  </div>
+                ) : null}
 
                 {(recipe.categories ?? []).length > 0 ? (
                   <div className="flex flex-wrap gap-2 px-4 pb-4">

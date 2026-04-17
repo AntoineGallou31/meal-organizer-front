@@ -83,7 +83,7 @@ export default function RecipesPage() {
   const [selectedMonth, setSelectedMonth] = useState('')
   const [ingredient, setIngredient] = useState('')
   const [prepMax, setPrepMax] = useState('')
-  const [sort, setSort] = useState('newest')
+  const [sort, setSort] = useState('oldest')
   const [showFilters, setShowFilters] = useState(false)
   const loadMoreRef = useRef(null)
   const selectionMode = searchParams.get('mode') === 'select'
@@ -142,7 +142,7 @@ export default function RecipesPage() {
     selectedMonth !== '' ||
     ingredient.trim() !== '' ||
     prepMax.trim() !== '' ||
-    sort !== 'newest'
+    sort !== 'oldest'
 
   const clearFilters = () => {
     setSearch('')
@@ -150,7 +150,7 @@ export default function RecipesPage() {
     setSelectedMonth('')
     setIngredient('')
     setPrepMax('')
-    setSort('newest')
+    setSort('oldest')
   }
 
   const handleRecipeClick = (recipe) => {
@@ -380,8 +380,8 @@ export default function RecipesPage() {
               value={sort}
               onChange={(event) => setSort(event.target.value)}
             >
-              <option value="newest">Plus récentes</option>
               <option value="oldest">Plus anciennes</option>
+              <option value="newest">Plus récentes</option>
               <option value="prepTime">Temps de préparation</option>
             </ListInput>
           </List>
