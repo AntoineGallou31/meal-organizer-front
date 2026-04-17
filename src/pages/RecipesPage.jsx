@@ -273,7 +273,7 @@ export default function RecipesPage() {
         }
       />
 
-      <div className="flex items-center gap-2 px-4 py-4 pt-16">
+      <div className="flex items-center gap-2 px-4 py-4 pt-1">
         <Searchbar
           placeholder="Rechercher une recette"
           value={search}

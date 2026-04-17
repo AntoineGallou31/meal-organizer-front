@@ -1,6 +1,6 @@
 {
-  "name": "Meal Organizer Couple",
-  "short_name": "Meal Couple",
+  "name": "Meal Organizer",
+  "short_name": "Meal Organizer",
   "description": "Planification hebdomadaire des repas pour deux.",
   "start_url": "/",
   "display": "standalone",
