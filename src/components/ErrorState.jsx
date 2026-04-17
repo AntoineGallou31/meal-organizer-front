@@ -4,7 +4,7 @@ export default function ErrorState({ message, onRetry }) {
   return (
     <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
       <div className="flex items-center gap-2">
-        <AlertCircle size={18} />
+        <AlertCircle size={30} />
         <p className="text-sm font-semibold">{message ?? 'Une erreur est survenue.'}</p>
       </div>
       {onRetry ? (

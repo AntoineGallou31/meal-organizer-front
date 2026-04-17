@@ -213,7 +213,7 @@ export default function CalendarPage() {
                     openSlotActions(day.date, slot)
                   }}
                 >
-                  <Plus size={18} />
+                  <Plus size={30} />
                 </Button>
                 <Button
                   clear
@@ -241,7 +241,7 @@ export default function CalendarPage() {
                   openSlotActions(day.date, slot)
                 }}
               >
-                <Plus size={18} />
+                <Plus size={30} />
               </Button>
             )}
           </div>

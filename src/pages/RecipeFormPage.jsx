@@ -413,7 +413,7 @@ export default function RecipeFormPage() {
         subtitle={subtitle}
         left={
           <Button clear small onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')} title="Retour">
-            <ChevronLeft size={20} />
+            <ChevronLeft size={30} />
           </Button>
         }
         right={
@@ -424,7 +424,7 @@ export default function RecipeFormPage() {
             onClick={() => navigate('/recipes/import')}
             className="rounded-full"
           >
-            <Upload size={16} />
+            <Upload size={20} />
           </Fab>
         }
       />

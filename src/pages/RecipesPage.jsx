@@ -76,7 +76,7 @@ const CHIP_COLORS = [
   'bg-pink-100 text-pink-700',
 ]
 
-const RECIPES_PAGE_SIZE = 24
+const RECIPES_PAGE_SIZE = 10
 
 function useDebouncedValue(value, delay = 250) {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -286,13 +286,12 @@ export default function RecipesPage() {
           onDisableButtonClick={() => setSearch('')}
         />
         <Fab
-          small
           tonal={!hasActiveFilters}
           onClick={() => setShowFilters(true)}
           title="Filtres"
           className="rounded-full"
         >
-          <Filter size={18} />
+          <Filter size={20} />
         </Fab>
       </div>
 
@@ -422,7 +421,7 @@ export default function RecipesPage() {
             </div>
 
             <Button clear small className="text-sage-700!" onClick={() => setShowFilters(false)} title="Fermer">
-              <X size={18} />
+              <X size={30} />
             </Button>
           </div>
 

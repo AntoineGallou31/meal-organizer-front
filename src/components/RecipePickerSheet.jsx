@@ -30,7 +30,7 @@ export default function RecipePickerSheet({
               className="rounded-full p-2 text-sage-700 hover:bg-cream-100"
               onClick={onClose}
             >
-              <X size={18} />
+              <X size={30} />
             </button>
           </div>
 

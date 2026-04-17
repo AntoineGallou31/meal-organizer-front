@@ -155,7 +155,7 @@ export default function RecipeDetailPage() {
           {showReliabilityWarning ? (
             <Block className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900">
               <div className="flex items-start gap-2 text-sm">
-                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                <AlertTriangle size={30} className="mt-0.5 shrink-0" />
                 <div>
                   <div className="font-semibold">Fiabilite de la recette: {Math.round(reliabilityScore)}/100</div>
                   <p className="mt-1 text-amber-800">
