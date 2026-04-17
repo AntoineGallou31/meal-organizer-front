@@ -18,7 +18,7 @@ import {
 import { api } from '../lib/api'
 import { MONTHS } from '../lib/seasonality'
 
-function RecipeTile({ recipe, selectionMode, multiSelectionMode, selected, onPick, disabled }) {
+function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
   const classes = 'mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl bg-white text-left'
 
   const content = (
@@ -45,7 +45,7 @@ function RecipeTile({ recipe, selectionMode, multiSelectionMode, selected, onPic
         </div>
         {selectionMode ? (
           <div className="mt-1 text-xs text-gray-500">
-            {multiSelectionMode ? (selected ? 'Recette sélectionnée' : 'Sélectionner cette recette') : 'Choisir cette recette'}
+            Choisir cette recette
           </div>
         ) : null}
       </div>
@@ -102,11 +102,9 @@ export default function RecipesPage() {
   const [showFilters, setShowFilters] = useState(false)
   const loadMoreRef = useRef(null)
   const selectionMode = searchParams.get('mode') === 'select'
-  const multiSelectionMode = selectionMode && searchParams.get('multi') === '1'
   const selectedDate = searchParams.get('date') ?? ''
   const selectedSlot = searchParams.get('slot') ?? ''
   const canPickRecipe = selectionMode && selectedDate !== '' && selectedSlot !== ''
-  const [selectedRecipeMap, setSelectedRecipeMap] = useState({})
 
   const categoriesQuery = useQuery({
     queryKey: ['categories'],
@@ -140,12 +138,7 @@ export default function RecipesPage() {
   })
 
   const pickRecipeMutation = useMutation({
-    mutationFn: async (payload) => {
-      if (Array.isArray(payload)) {
-        return Promise.all(payload.map((item) => api.createMealPlanItem(item)))
-      }
-      return api.createMealPlanItem(payload)
-    },
+    mutationFn: api.createMealPlanItem,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
       navigate(-1)
@@ -176,22 +169,6 @@ export default function RecipesPage() {
   }
 
   const handleRecipeClick = (recipe) => {
-    if (multiSelectionMode) {
-      setSelectedRecipeMap((prev) => {
-        if (prev[recipe.id]) {
-          const next = { ...prev }
-          delete next[recipe.id]
-          return next
-        }
-
-        return {
-          ...prev,
-          [recipe.id]: recipe,
-        }
-      })
-      return
-    }
-
     if (!canPickRecipe) {
       navigate(`/recipes/${recipe.id}`)
       return
@@ -203,24 +180,6 @@ export default function RecipesPage() {
       type: 'recipe',
       recipeId: recipe.id,
     })
-  }
-
-  const selectedRecipes = Object.values(selectedRecipeMap)
-  const selectedCount = selectedRecipes.length
-
-  const handleConfirmMultiSelection = () => {
-    if (!canPickRecipe || selectedCount === 0) {
-      return
-    }
-
-    pickRecipeMutation.mutate(
-      selectedRecipes.map((recipe) => ({
-        date: selectedDate,
-        slot: selectedSlot,
-        type: 'recipe',
-        recipeId: recipe.id,
-      })),
-    )
   }
 
   useEffect(() => {
@@ -353,8 +312,6 @@ export default function RecipesPage() {
                   key={recipe.id}
                   recipe={recipe}
                   selectionMode={selectionMode}
-                  multiSelectionMode={multiSelectionMode}
-                  selected={Boolean(selectedRecipeMap[recipe.id])}
                   disabled={pickRecipeMutation.isPending}
                   onPick={handleRecipeClick}
                 />
@@ -372,29 +329,6 @@ export default function RecipesPage() {
             ) : (
               <div className="pb-24" />
             )}
-
-            {multiSelectionMode ? (
-              <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <div className="pointer-events-auto rounded-2xl border border-cream-200 bg-white/95 p-3 shadow-soft backdrop-blur">
-                  <div className="mb-2 text-center text-xs text-gray-600">
-                    {selectedCount > 0
-                      ? `${selectedCount} recette${selectedCount > 1 ? 's' : ''} sélectionnée${selectedCount > 1 ? 's' : ''}`
-                      : 'Sélectionne une ou plusieurs recettes'}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button tonal onClick={() => navigate(-1)}>
-                      Annuler
-                    </Button>
-                    <Button
-                      disabled={selectedCount === 0 || pickRecipeMutation.isPending}
-                      onClick={handleConfirmMultiSelection}
-                    >
-                      {pickRecipeMutation.isPending ? 'Ajout...' : 'Valider'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
           </>
         ) : (
           <List inset strong>

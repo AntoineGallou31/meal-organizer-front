@@ -95,13 +95,11 @@ export default function CalendarPage() {
     createMealPlanItemMutation.mutate({ date, slot, type: 'note', note: normalizedText })
   }
 
-  const openRecipePicker = (date, slot, options = {}) => {
-    const multi = options.multi === true
+  const openRecipePicker = (date, slot) => {
     const params = new URLSearchParams({
       mode: 'select',
       date,
       slot,
-      ...(multi && { multi: '1' }),
     })
     setSearchParams({ week: currentWeek.format('YYYY-MM-DD') }, { replace: true })
     navigate(`/recipes?${params.toString()}`)
@@ -332,17 +330,6 @@ export default function CalendarPage() {
                 }}
               >
                 Ajouter une recette
-              </Button>
-              <Button
-                tonal
-                onClick={() => {
-                  if (!actionTarget) return
-                  const { date, slot } = actionTarget
-                  closeSlotActions()
-                  openRecipePicker(date, slot, { multi: true })
-                }}
-              >
-                Ajouter plusieurs recettes
               </Button>
               <Button
                 tonal
