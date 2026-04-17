@@ -320,7 +320,12 @@ export default function CalendarPage() {
           </List>
         ) : null}
 
-        <Sheet opened={Boolean(actionTarget)} onBackdropClick={closeSlotActions}>
+        <Sheet
+          opened={Boolean(actionTarget)}
+          onBackdropClick={closeSlotActions}
+          className="z-70!"
+          backdropClassName="z-60!"
+        >
           <div className="p-4">
             <div className="mb-3 text-base font-semibold text-sage-900">Ajouter dans cette case</div>
             <div className="grid grid-cols-1 gap-2">
@@ -333,17 +338,6 @@ export default function CalendarPage() {
                 }}
               >
                 Ajouter une recette
-              </Button>
-              <Button
-                tonal
-                onClick={() => {
-                  if (!actionTarget) return
-                  const { date, slot } = actionTarget
-                  closeSlotActions()
-                  openRecipePicker(date, slot, { multi: true })
-                }}
-              >
-                Ajouter plusieurs recettes
               </Button>
               <Button
                 tonal
