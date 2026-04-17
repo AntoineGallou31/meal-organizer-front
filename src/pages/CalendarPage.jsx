@@ -12,6 +12,7 @@ import {
   Navbar,
   Page,
   Preloader,
+  Sheet,
 } from 'konsta/react'
 import { api } from '../lib/api'
 import { getWeekDays, getWeekKey, formatWeekLabel } from '../lib/week'
@@ -24,6 +25,7 @@ export default function CalendarPage() {
   const [currentWeek, setCurrentWeek] = useState(() => (weekParam ? dayjs(weekParam) : dayjs()))
   const [editingCell, setEditingCell] = useState(null)
   const [editingValue, setEditingValue] = useState('')
+  const [actionTarget, setActionTarget] = useState(null)
 
   const weekKey = getWeekKey(currentWeek)
 
@@ -92,9 +94,18 @@ export default function CalendarPage() {
     setEditingValue(initialValue)
   }
 
-  const openRecipePicker = (date, slot) => {
+  const openRecipePicker = (date, slot, options = {}) => {
+    const multi = options.multi === true
     setSearchParams({ week: currentWeek.format('YYYY-MM-DD') }, { replace: true })
-    navigate(`/recipes?mode=select&date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`)
+    navigate(`/recipes?mode=select&date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}${multi ? '&multi=1' : ''}`)
+  }
+
+  const openSlotActions = (date, slot) => {
+    setActionTarget({ date, slot })
+  }
+
+  const closeSlotActions = () => {
+    setActionTarget(null)
   }
 
   const isRecipeToComplete = (recipe) => {
@@ -133,17 +144,21 @@ export default function CalendarPage() {
   const renderSlotItem = (day, slot, label) => {
     const recipe = slot === 'lunch' ? day.lunch : day.dinner
     const manualNote = slot === 'lunch' ? day.lunchManualText : day.dinnerManualText
+    const noteLines = typeof manualNote === 'string'
+      ? manualNote.split('\n').map((line) => line.trim()).filter(Boolean)
+      : []
     const cellKey = getCellKey(day.date, slot)
     const isEditing = editingCell === cellKey
     const hasSelectedMeal = Boolean(recipe || manualNote)
-    const title = recipe?.title ?? manualNote ?? 'Ajouter une recette'
+    const hasMultipleNoteLines = !recipe && noteLines.length > 1
+    const title = recipe?.title ?? (hasMultipleNoteLines ? 'Repas prévus' : (manualNote ?? 'Ajouter une recette'))
     const isRecipeSelected = Boolean(recipe)
 
     return (
       <ListItem
         key={cellKey}
         header={label}
-        className={`items-center ${isRecipeSelected ? 'cursor-pointer' : ''}`}
+        className={`${hasMultipleNoteLines ? 'items-start' : 'items-center'} ${isRecipeSelected ? 'cursor-pointer' : ''}`}
         title={
           isEditing ? null : (
             <span
@@ -164,6 +179,17 @@ export default function CalendarPage() {
             }}
             autoFocus
           />
+        ) : hasMultipleNoteLines ? (
+          <div className="mt-1 space-y-1 text-sm text-gray-600">
+            {noteLines.slice(0, 4).map((line) => (
+              <div key={`${cellKey}-${line}`} className="truncate">
+                {line}
+              </div>
+            ))}
+            {noteLines.length > 4 ? (
+              <div className="text-xs text-gray-500">+{noteLines.length - 4} autre(s)</div>
+            ) : null}
+          </div>
         ) : null}
         after={
           <div className="flex w-9 justify-end">
@@ -187,10 +213,10 @@ export default function CalendarPage() {
               <Button
                 clear
                 small
-                title="Ajouter une recette"
+                title="Ajouter au planning"
                 onClick={(event) => {
                   event.stopPropagation()
-                  openRecipePicker(day.date, slot)
+                  openSlotActions(day.date, slot)
                 }}
               >
                 <Plus size={18} />
@@ -208,7 +234,7 @@ export default function CalendarPage() {
             return
           }
 
-          startInlineEdit(day.date, slot, manualNote ?? '')
+          openSlotActions(day.date, slot)
         }}
       />
     )
@@ -271,6 +297,46 @@ export default function CalendarPage() {
             <ListItem title="Erreur de suppression" footer={removeMealMutation.error?.message} />
           </List>
         ) : null}
+
+        <Sheet opened={Boolean(actionTarget)} onBackdropClick={closeSlotActions}>
+          <div className="p-4">
+            <div className="mb-3 text-base font-semibold text-sage-900">Ajouter dans cette case</div>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                onClick={() => {
+                  if (!actionTarget) return
+                  const { date, slot } = actionTarget
+                  closeSlotActions()
+                  openRecipePicker(date, slot)
+                }}
+              >
+                Ajouter une recette
+              </Button>
+              <Button
+                tonal
+                onClick={() => {
+                  if (!actionTarget) return
+                  const { date, slot } = actionTarget
+                  closeSlotActions()
+                  openRecipePicker(date, slot, { multi: true })
+                }}
+              >
+                Ajouter plusieurs recettes
+              </Button>
+              <Button
+                tonal
+                onClick={() => {
+                  if (!actionTarget) return
+                  const { date, slot } = actionTarget
+                  closeSlotActions()
+                  startInlineEdit(date, slot, '')
+                }}
+              >
+                Ajouter une note
+              </Button>
+            </div>
+          </div>
+        </Sheet>
 
       </Page>
     )
