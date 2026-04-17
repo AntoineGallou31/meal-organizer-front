@@ -96,8 +96,17 @@ export default function CalendarPage() {
 
   const openRecipePicker = (date, slot, options = {}) => {
     const multi = options.multi === true
+    const recipe = slot === 'lunch' ? (days.find(d => d.date === date)?.lunch) : (days.find(d => d.date === date)?.dinner)
+    const existingTitle = recipe?.title ?? undefined
+    const params = new URLSearchParams({
+      mode: 'select',
+      date,
+      slot,
+      ...(multi && { multi: '1' }),
+      ...(existingTitle && { existing: existingTitle }),
+    })
     setSearchParams({ week: currentWeek.format('YYYY-MM-DD') }, { replace: true })
-    navigate(`/recipes?mode=select&date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}${multi ? '&multi=1' : ''}`)
+    navigate(`/recipes?${params.toString()}`)
   }
 
   const openSlotActions = (date, slot) => {
@@ -192,23 +201,36 @@ export default function CalendarPage() {
           </div>
         ) : null}
         after={
-          <div className="flex w-9 justify-end">
+          <div className="flex w-18 justify-end gap-1">
             {hasSelectedMeal ? (
-              <Button
-                clear
-                small
-                className="text-red-600!"
-                title="Supprimer le repas"
-                disabled={removeMealMutation.isPending}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setEditingCell(null)
-                  setEditingValue('')
-                  removeMealMutation.mutate({ date: day.date, slot })
-                }}
-              >
-                <Trash2 size={16} />
-              </Button>
+              <>
+                <Button
+                  clear
+                  small
+                  title="Ajouter au planning"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    openSlotActions(day.date, slot)
+                  }}
+                >
+                  <Plus size={18} />
+                </Button>
+                <Button
+                  clear
+                  small
+                  className="text-red-600!"
+                  title="Supprimer le repas"
+                  disabled={removeMealMutation.isPending}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setEditingCell(null)
+                    setEditingValue('')
+                    removeMealMutation.mutate({ date: day.date, slot })
+                  }}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </>
             ) : (
               <Button
                 clear

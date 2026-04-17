@@ -31,7 +31,18 @@ function RecipeTile({ recipe, selectionMode, multiSelectionMode, selected, onPic
         </div>
       )}
       <div className="px-3 py-2 text-sm font-medium text-gray-900">
-        <div>{recipe.title}</div>
+        <div className="flex items-center justify-between">
+          <span>{recipe.title}</span>
+          {selectionMode && (
+            <Link
+              to={`/recipes/${recipe.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="ml-2 inline-block text-xs text-blue-600 hover:underline"
+            >
+              Voir
+            </Link>
+          )}
+        </div>
         {selectionMode ? (
           <div className="mt-1 text-xs text-gray-500">
             {multiSelectionMode ? (selected ? 'Recette sélectionnée' : 'Sélectionner cette recette') : 'Choisir cette recette'}
@@ -94,6 +105,7 @@ export default function RecipesPage() {
   const multiSelectionMode = selectionMode && searchParams.get('multi') === '1'
   const selectedDate = searchParams.get('date') ?? ''
   const selectedSlot = searchParams.get('slot') ?? ''
+  const existingRecipeTitle = searchParams.get('existing') ?? null
   const canPickRecipe = selectionMode && selectedDate !== '' && selectedSlot !== ''
   const [selectedRecipeMap, setSelectedRecipeMap] = useState({})
 
@@ -181,6 +193,16 @@ export default function RecipesPage() {
       return
     }
 
+    if (existingRecipeTitle) {
+      const manualText = `1. ${existingRecipeTitle}\n2. ${recipe.title}`
+      pickRecipeMutation.mutate({
+        date: selectedDate,
+        slot: selectedSlot,
+        manualText,
+      })
+      return
+    }
+
     pickRecipeMutation.mutate({
       date: selectedDate,
       slot: selectedSlot,
@@ -251,7 +273,7 @@ export default function RecipesPage() {
         }
       />
 
-      <div className="flex items-center gap-2 px-4 py-4">
+      <div className="flex items-center gap-2 px-4 py-4 pt-16">
         <Searchbar
           placeholder="Rechercher une recette"
           value={search}
