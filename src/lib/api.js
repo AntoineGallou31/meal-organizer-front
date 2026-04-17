@@ -84,13 +84,30 @@ function normalizeRecipeListResponse(data) {
 }
 
 function normalizeMealPlanDays(data) {
+  const normalizeMealPlanItem = (item) => {
+    if (!item) return item
+
+    return {
+      ...item,
+      recipeId: item.recipeId ?? item.recipe_id ?? null,
+      createdAt: item.createdAt ?? item.created_at ?? null,
+      recipe: normalizeRecipe(item.recipe),
+    }
+  }
+
   if (Array.isArray(data)) {
     return data.map((day) => ({
       ...day,
-      lunch: normalizeRecipe(day.lunch),
-      lunchManualText: day.lunchManualText ?? day.lunch_manual_text ?? null,
-      dinner: normalizeRecipe(day.dinner),
-      dinnerManualText: day.dinnerManualText ?? day.dinner_manual_text ?? null,
+      lunchItems: Array.isArray(day.lunchItems)
+        ? day.lunchItems.map(normalizeMealPlanItem)
+        : Array.isArray(day.lunch_items)
+          ? day.lunch_items.map(normalizeMealPlanItem)
+          : [],
+      dinnerItems: Array.isArray(day.dinnerItems)
+        ? day.dinnerItems.map(normalizeMealPlanItem)
+        : Array.isArray(day.dinner_items)
+          ? day.dinner_items.map(normalizeMealPlanItem)
+          : [],
     }))
   }
 
@@ -99,10 +116,16 @@ function normalizeMealPlanDays(data) {
       ...data,
       days: data.days.map((day) => ({
         ...day,
-        lunch: normalizeRecipe(day.lunch),
-        lunchManualText: day.lunchManualText ?? day.lunch_manual_text ?? null,
-        dinner: normalizeRecipe(day.dinner),
-        dinnerManualText: day.dinnerManualText ?? day.dinner_manual_text ?? null,
+        lunchItems: Array.isArray(day.lunchItems)
+          ? day.lunchItems.map(normalizeMealPlanItem)
+          : Array.isArray(day.lunch_items)
+            ? day.lunch_items.map(normalizeMealPlanItem)
+            : [],
+        dinnerItems: Array.isArray(day.dinnerItems)
+          ? day.dinnerItems.map(normalizeMealPlanItem)
+          : Array.isArray(day.dinner_items)
+            ? day.dinner_items.map(normalizeMealPlanItem)
+            : [],
       })),
     }
   }
@@ -150,12 +173,16 @@ async function apiRequest(path, options = {}) {
 
 export const api = {
   getMealPlan: async (week) => normalizeMealPlanDays(await apiRequest(`/api/meal-plan?week=${week}`)),
-  assignMeal: ({ date, slot, recipeId, manualText }) =>
-    apiRequest('/api/meal-plan', {
+  createMealPlanItem: ({ date, slot, type, recipeId, note, position }) =>
+    apiRequest('/api/meal-plan/items', {
       method: 'POST',
-      body: JSON.stringify({ date, slot, recipeId, manualText }),
+      body: JSON.stringify({ date, slot, type, recipeId, note, position }),
     }),
-  removeMeal: ({ date, slot }) =>
+  removeMealPlanItem: ({ id }) =>
+    apiRequest(`/api/meal-plan/items/${id}`, {
+      method: 'DELETE',
+    }),
+  clearMealSlot: ({ date, slot }) =>
     apiRequest(`/api/meal-plan/${date}/${slot}`, {
       method: 'DELETE',
     }),

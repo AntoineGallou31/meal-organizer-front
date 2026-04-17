@@ -23,9 +23,9 @@ export default function CalendarPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const weekParam = searchParams.get('week')
   const [currentWeek, setCurrentWeek] = useState(() => (weekParam ? dayjs(weekParam) : dayjs()))
-  const [editingCell, setEditingCell] = useState(null)
-  const [editingValue, setEditingValue] = useState('')
   const [actionTarget, setActionTarget] = useState(null)
+  const [noteTarget, setNoteTarget] = useState(null)
+  const [noteValue, setNoteValue] = useState('')
 
   const weekKey = getWeekKey(currentWeek)
 
@@ -35,17 +35,24 @@ export default function CalendarPage() {
     placeholderData: (previousData) => previousData,
   })
 
-  const assignMealMutation = useMutation({
-    mutationFn: api.assignMeal,
+  const createMealPlanItemMutation = useMutation({
+    mutationFn: api.createMealPlanItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', weekKey] })
-      setEditingCell(null)
-      setEditingValue('')
+      setNoteTarget(null)
+      setNoteValue('')
     },
   })
 
-  const removeMealMutation = useMutation({
-    mutationFn: api.removeMeal,
+  const removeMealPlanItemMutation = useMutation({
+    mutationFn: api.removeMealPlanItem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', weekKey] })
+    },
+  })
+
+  const clearMealSlotMutation = useMutation({
+    mutationFn: api.clearMealSlot,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', weekKey] })
     },
@@ -78,32 +85,23 @@ export default function CalendarPage() {
 
   const getCellKey = (date, slot) => `${date}-${slot}`
 
-  const handleSaveManualNote = (date, slot, text) => {
+  const handleSaveNote = (date, slot, text) => {
     const normalizedText = text.trim()
     if (!normalizedText) {
-      setEditingCell(null)
-      setEditingValue('')
-      removeMealMutation.mutate({ date, slot })
+      setNoteTarget(null)
+      setNoteValue('')
       return
     }
-    assignMealMutation.mutate({ date, slot, manualText: normalizedText })
-  }
-
-  const startInlineEdit = (date, slot, initialValue = '') => {
-    setEditingCell(getCellKey(date, slot))
-    setEditingValue(initialValue)
+    createMealPlanItemMutation.mutate({ date, slot, type: 'note', note: normalizedText })
   }
 
   const openRecipePicker = (date, slot, options = {}) => {
     const multi = options.multi === true
-    const recipe = slot === 'lunch' ? (days.find(d => d.date === date)?.lunch) : (days.find(d => d.date === date)?.dinner)
-    const existingTitle = recipe?.title ?? undefined
     const params = new URLSearchParams({
       mode: 'select',
       date,
       slot,
       ...(multi && { multi: '1' }),
-      ...(existingTitle && { existing: existingTitle }),
     })
     setSearchParams({ week: currentWeek.format('YYYY-MM-DD') }, { replace: true })
     navigate(`/recipes?${params.toString()}`)
@@ -115,6 +113,16 @@ export default function CalendarPage() {
 
   const closeSlotActions = () => {
     setActionTarget(null)
+  }
+
+  const openNoteEditor = (date, slot) => {
+    setNoteTarget({ date, slot })
+    setNoteValue('')
+  }
+
+  const closeNoteEditor = () => {
+    setNoteTarget(null)
+    setNoteValue('')
   }
 
   const isRecipeToComplete = (recipe) => {
@@ -150,88 +158,24 @@ export default function CalendarPage() {
     navigate(`/recipes/${recipe.id}`)
   }
 
+  const getSlotItems = (day, slot) => {
+    const list = slot === 'lunch' ? day.lunchItems : day.dinnerItems
+    return Array.isArray(list) ? list : []
+  }
+
   const renderSlotItem = (day, slot, label) => {
-    const recipe = slot === 'lunch' ? day.lunch : day.dinner
-    const manualNote = slot === 'lunch' ? day.lunchManualText : day.dinnerManualText
-    const noteLines = typeof manualNote === 'string'
-      ? manualNote.split('\n').map((line) => line.trim()).filter(Boolean)
-      : []
+    const slotItems = getSlotItems(day, slot)
     const cellKey = getCellKey(day.date, slot)
-    const isEditing = editingCell === cellKey
-    const hasSelectedMeal = Boolean(recipe || manualNote)
-    const hasMultipleNoteLines = !recipe && noteLines.length > 1
-    const title = recipe?.title ?? (hasMultipleNoteLines ? 'Repas prévus' : (manualNote ?? 'Ajouter une recette'))
-    const isRecipeSelected = Boolean(recipe)
 
     return (
-      <ListItem
-        key={cellKey}
-        header={label}
-        className={`${hasMultipleNoteLines ? 'items-start' : 'items-center'} ${isRecipeSelected ? 'cursor-pointer' : ''}`}
-        title={
-          isEditing ? null : (
-            <span
-              className={isRecipeSelected ? 'font-medium underline decoration-2 underline-offset-2' : undefined}
-            >
-              {title}
-            </span>
-          )
-        }
-        text={isEditing ? (
-          <ListInput
-            type="text"
-            value={editingValue}
-            placeholder="Entrez une recette"
-            onChange={(event) => setEditingValue(event.target.value)}
-            onBlur={() => {
-              handleSaveManualNote(day.date, slot, editingValue)
-            }}
-            autoFocus
-          />
-        ) : hasMultipleNoteLines ? (
-          <div className="mt-1 space-y-1 text-sm text-gray-600">
-            {noteLines.slice(0, 4).map((line) => (
-              <div key={`${cellKey}-${line}`} className="truncate">
-                {line}
-              </div>
-            ))}
-            {noteLines.length > 4 ? (
-              <div className="text-xs text-gray-500">+{noteLines.length - 4} autre(s)</div>
-            ) : null}
-          </div>
-        ) : null}
-        after={
-          <div className="flex w-18 justify-end gap-1">
-            {hasSelectedMeal ? (
-              <>
-                <Button
-                  clear
-                  small
-                  title="Ajouter au planning"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    openSlotActions(day.date, slot)
-                  }}
-                >
-                  <Plus size={30} />
-                </Button>
-                <Button
-                  clear
-                  small
-                  className="text-red-600!"
-                  title="Supprimer le repas"
-                  disabled={removeMealMutation.isPending}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setEditingCell(null)
-                    setEditingValue('')
-                    removeMealMutation.mutate({ date: day.date, slot })
-                  }}
-                >
-                  <Trash2 size={16} />
-                </Button>
-              </>
-            ) : (
+      <>
+        <ListItem
+          key={cellKey}
+          header={label}
+          title={slotItems.length > 0 ? `${slotItems.length} élément(s)` : 'Aucun élément'}
+          text={slotItems.length > 0 ? 'Touchez un élément pour voir le détail.' : 'Ajoutez une recette ou une note.'}
+          after={
+            <div className="flex w-18 justify-end gap-1">
               <Button
                 clear
                 small
@@ -243,22 +187,66 @@ export default function CalendarPage() {
               >
                 <Plus size={30} />
               </Button>
-            )}
-          </div>
-        }
-        onClick={async () => {
-          if (isEditing) {
-            return
+              {slotItems.length > 0 ? (
+                <Button
+                  clear
+                  small
+                  className="text-red-600!"
+                  title="Vider le créneau"
+                  disabled={clearMealSlotMutation.isPending}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    clearMealSlotMutation.mutate({ date: day.date, slot })
+                  }}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              ) : null}
+            </div>
           }
+          onClick={() => openSlotActions(day.date, slot)}
+        />
 
-          if (recipe) {
-            openMealRecipe(recipe)
-            return
-          }
+        {slotItems.map((item) => {
+          const isRecipeItem = item.type === 'recipe' && item.recipe
+          const itemTitle = isRecipeItem
+            ? item.recipe.title
+            : (item.note || 'Note')
 
-          openSlotActions(day.date, slot)
-        }}
-      />
+          return (
+            <ListItem
+              key={item.id}
+              className={isRecipeItem ? 'cursor-pointer' : ''}
+              title={
+                <span className={isRecipeItem ? 'font-medium underline decoration-2 underline-offset-2' : undefined}>
+                  {itemTitle}
+                </span>
+              }
+              text={item.type === 'note' ? 'Note' : 'Recette'}
+              after={
+                <Button
+                  clear
+                  small
+                  className="text-red-600!"
+                  title="Supprimer cet élément"
+                  disabled={removeMealPlanItemMutation.isPending}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    removeMealPlanItemMutation.mutate({ id: item.id })
+                  }}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              }
+              onClick={() => {
+                if (isRecipeItem) {
+                  openMealRecipe(item.recipe)
+                }
+              }}
+            />
+          )
+        })}
+      </>
     )
   }
 
@@ -308,15 +296,21 @@ export default function CalendarPage() {
           </>
         ) : null}
 
-        {assignMealMutation.isError ? (
+        {createMealPlanItemMutation.isError ? (
           <List inset strong>
-            <ListItem title="Erreur d'assignation" footer={assignMealMutation.error?.message} />
+            <ListItem title="Erreur d'ajout" footer={createMealPlanItemMutation.error?.message} />
           </List>
         ) : null}
 
-        {removeMealMutation.isError ? (
+        {removeMealPlanItemMutation.isError ? (
           <List inset strong>
-            <ListItem title="Erreur de suppression" footer={removeMealMutation.error?.message} />
+            <ListItem title="Erreur de suppression" footer={removeMealPlanItemMutation.error?.message} />
+          </List>
+        ) : null}
+
+        {clearMealSlotMutation.isError ? (
+          <List inset strong>
+            <ListItem title="Erreur de suppression" footer={clearMealSlotMutation.error?.message} />
           </List>
         ) : null}
 
@@ -345,10 +339,52 @@ export default function CalendarPage() {
                   if (!actionTarget) return
                   const { date, slot } = actionTarget
                   closeSlotActions()
-                  startInlineEdit(date, slot, '')
+                  openRecipePicker(date, slot, { multi: true })
+                }}
+              >
+                Ajouter plusieurs recettes
+              </Button>
+              <Button
+                tonal
+                onClick={() => {
+                  if (!actionTarget) return
+                  const { date, slot } = actionTarget
+                  closeSlotActions()
+                  openNoteEditor(date, slot)
                 }}
               >
                 Ajouter une note
+              </Button>
+            </div>
+          </div>
+        </Sheet>
+
+        <Sheet
+          opened={Boolean(noteTarget)}
+          onBackdropClick={closeNoteEditor}
+          className="z-70!"
+          backdropClassName="z-60!"
+        >
+          <div className="p-4">
+            <div className="mb-3 text-base font-semibold text-sage-900">Ajouter une note</div>
+            <List strongIos outlineIos>
+              <ListInput
+                type="textarea"
+                placeholder="Ex: soupe maison + salade"
+                value={noteValue}
+                onChange={(event) => setNoteValue(event.target.value)}
+              />
+            </List>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button tonal onClick={closeNoteEditor}>Annuler</Button>
+              <Button
+                disabled={createMealPlanItemMutation.isPending || !noteTarget}
+                onClick={() => {
+                  if (!noteTarget) return
+                  handleSaveNote(noteTarget.date, noteTarget.slot, noteValue)
+                }}
+              >
+                {createMealPlanItemMutation.isPending ? 'Ajout...' : 'Ajouter'}
               </Button>
             </div>
           </div>

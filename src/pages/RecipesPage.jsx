@@ -105,7 +105,6 @@ export default function RecipesPage() {
   const multiSelectionMode = selectionMode && searchParams.get('multi') === '1'
   const selectedDate = searchParams.get('date') ?? ''
   const selectedSlot = searchParams.get('slot') ?? ''
-  const existingRecipeTitle = searchParams.get('existing') ?? null
   const canPickRecipe = selectionMode && selectedDate !== '' && selectedSlot !== ''
   const [selectedRecipeMap, setSelectedRecipeMap] = useState({})
 
@@ -141,7 +140,12 @@ export default function RecipesPage() {
   })
 
   const pickRecipeMutation = useMutation({
-    mutationFn: api.assignMeal,
+    mutationFn: async (payload) => {
+      if (Array.isArray(payload)) {
+        return Promise.all(payload.map((item) => api.createMealPlanItem(item)))
+      }
+      return api.createMealPlanItem(payload)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
       navigate(-1)
@@ -193,19 +197,10 @@ export default function RecipesPage() {
       return
     }
 
-    if (existingRecipeTitle) {
-      const manualText = `1. ${existingRecipeTitle}\n2. ${recipe.title}`
-      pickRecipeMutation.mutate({
-        date: selectedDate,
-        slot: selectedSlot,
-        manualText,
-      })
-      return
-    }
-
     pickRecipeMutation.mutate({
       date: selectedDate,
       slot: selectedSlot,
+      type: 'recipe',
       recipeId: recipe.id,
     })
   }
@@ -218,15 +213,14 @@ export default function RecipesPage() {
       return
     }
 
-    const manualText = selectedRecipes
-      .map((recipe, index) => `${index + 1}. ${recipe.title}`)
-      .join('\n')
-
-    pickRecipeMutation.mutate({
-      date: selectedDate,
-      slot: selectedSlot,
-      manualText,
-    })
+    pickRecipeMutation.mutate(
+      selectedRecipes.map((recipe) => ({
+        date: selectedDate,
+        slot: selectedSlot,
+        type: 'recipe',
+        recipeId: recipe.id,
+      })),
+    )
   }
 
   useEffect(() => {

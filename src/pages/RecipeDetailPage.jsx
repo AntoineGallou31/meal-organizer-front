@@ -82,7 +82,7 @@ export default function RecipeDetailPage() {
   })
 
   const assignMealMutation = useMutation({
-    mutationFn: api.assignMeal,
+    mutationFn: api.createMealPlanItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
       setPlannerOpen(false)
@@ -415,7 +415,7 @@ export default function RecipeDetailPage() {
               disabled={assignMealMutation.isPending || !recipe}
               onClick={() => {
                 if (!recipe) return
-                assignMealMutation.mutate({ date: selectedDate, slot: selectedSlot, recipeId: recipe.id })
+                assignMealMutation.mutate({ date: selectedDate, slot: selectedSlot, type: 'recipe', recipeId: recipe.id })
               }}
             >
               {assignMealMutation.isPending ? 'Ajout en cours...' : 'Confirmer'}
