@@ -31,7 +31,7 @@ export function formatWeekLabel(date) {
   const start = dayjs(date).startOf('isoWeek')
   const end = start.add(6, 'day')
 
-  return `Semaine du ${start.format('D MMM')} au ${end.format('D MMM')}`
+  return `${start.format('DD/MM')} au ${end.format('DD/MM')}`
 }
 
 export function getUpcomingDays(count = 14) {

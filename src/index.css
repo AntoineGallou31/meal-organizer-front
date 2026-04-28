@@ -8,52 +8,52 @@
   --font-sans: 'Poppins', sans-serif;
   --font-display: 'Poppins', sans-serif;
 
-  --shadow-soft: 0 20px 60px rgba(51, 34, 22, 0.12);
+  --shadow-soft: 0 20px 60px rgba(15, 23, 42, 0.10);
 
-  --color-sage-50: #f3f7f2;
-  --color-sage-100: #e3ece0;
-  --color-sage-200: #cadac3;
-  --color-sage-300: #afc6a6;
-  --color-sage-400: #90af83;
-  --color-sage-500: #73946a;
-  --color-sage-600: #5d7855;
-  --color-sage-700: #486045;
-  --color-sage-800: #354739;
-  --color-sage-900: #203129;
+  --color-sage-50: #f8fafc;
+  --color-sage-100: #f1f5f9;
+  --color-sage-200: #e2e8f0;
+  --color-sage-300: #cbd5e1;
+  --color-sage-400: #94a3b8;
+  --color-sage-500: #64748b;
+  --color-sage-600: #475569;
+  --color-sage-700: #334155;
+  --color-sage-800: #1e293b;
+  --color-sage-900: #0f172a;
 
-  --color-cream-50: #fffaf4;
-  --color-cream-100: #f9f1e5;
-  --color-cream-200: #f0e1cb;
-  --color-cream-300: #e7cfac;
-  --color-cream-400: #ddb98b;
-  --color-cream-500: #c9a06b;
-  --color-cream-600: #a97f49;
-  --color-cream-700: #886337;
-  --color-cream-800: #664b29;
-  --color-cream-900: #4a3820;
+  --color-cream-50: #ffffff;
+  --color-cream-100: #fafafa;
+  --color-cream-200: #e5e7eb;
+  --color-cream-300: #d1d5db;
+  --color-cream-400: #9ca3af;
+  --color-cream-500: #6b7280;
+  --color-cream-600: #4b5563;
+  --color-cream-700: #374151;
+  --color-cream-800: #1f2937;
+  --color-cream-900: #111827;
 
-  --color-terracotta-50: #fff3ef;
-  --color-terracotta-100: #ffe1d7;
-  --color-terracotta-200: #ffcab8;
-  --color-terracotta-300: #f3a98f;
-  --color-terracotta-400: #ec8c70;
-  --color-terracotta-500: #df6f52;
-  --color-terracotta-600: #c85d43;
-  --color-terracotta-700: #a44631;
-  --color-terracotta-800: #833726;
-  --color-terracotta-900: #642819;
+  --color-terracotta-50: #fff7ed;
+  --color-terracotta-100: #ffedd5;
+  --color-terracotta-200: #fed7aa;
+  --color-terracotta-300: #fdba74;
+  --color-terracotta-400: #fb923c;
+  --color-terracotta-500: #f97316;
+  --color-terracotta-600: #ea580c;
+  --color-terracotta-700: #c2410c;
+  --color-terracotta-800: #9a3412;
+  --color-terracotta-900: #7c2d12;
 
-  --color-charcoal-50: #f5f4f2;
-  --color-charcoal-100: #e7e4df;
-  --color-charcoal-200: #cec8c0;
-  --color-charcoal-300: #aaa39a;
-  --color-charcoal-400: #867d73;
-  --color-charcoal-500: #665d54;
-  --color-charcoal-600: #51473f;
-  --color-charcoal-700: #3f372f;
-  --color-charcoal-800: #2d2721;
-  --color-charcoal-900: #1e1915;
-  --color-charcoal-950: #120f0c;
+  --color-charcoal-50: #f8fafc;
+  --color-charcoal-100: #f1f5f9;
+  --color-charcoal-200: #e2e8f0;
+  --color-charcoal-300: #cbd5e1;
+  --color-charcoal-400: #94a3b8;
+  --color-charcoal-500: #64748b;
+  --color-charcoal-600: #475569;
+  --color-charcoal-700: #334155;
+  --color-charcoal-800: #1e293b;
+  --color-charcoal-900: #0f172a;
+  --color-charcoal-950: #020617;
 
   --animate-sheet-up: sheet-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-sheet-down: sheet-down 180ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -63,16 +63,16 @@
 @layer base {
   :root {
     color-scheme: light;
-    --app-bg-start: #fff8f0;
-    --app-bg-mid: #f8ece2;
-    --app-bg-end: #efe5da;
+    --app-bg-start: #ffffff;
+    --app-bg-mid: #f8fafc;
+    --app-bg-end: #eef2f7;
   }
 
   html {
     min-height: 100%;
     background:
-      radial-gradient(circle at top left, rgba(223, 111, 82, 0.16), transparent 34%),
-      radial-gradient(circle at top right, rgba(93, 120, 85, 0.18), transparent 28%),
+      radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 34%),
+      radial-gradient(circle at top right, rgba(148, 163, 184, 0.18), transparent 28%),
       linear-gradient(180deg, var(--app-bg-start), var(--app-bg-mid) 48%, var(--app-bg-end));
   }
 

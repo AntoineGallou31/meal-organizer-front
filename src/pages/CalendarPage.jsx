@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeftIcon, ArrowRightIcon, Plus, Trash2 } from 'lucide-react'
 import dayjs from 'dayjs'
@@ -68,20 +68,18 @@ export default function CalendarPage() {
   const subtitle = formatWeekLabel(currentWeek)
 
   const goToPreviousWeek = () => {
-    setCurrentWeek((prev) => {
-      const nextWeek = prev.subtract(1, 'week')
-      setSearchParams({ week: nextWeek.format('YYYY-MM-DD') }, { replace: true })
-      return nextWeek
-    })
+    setCurrentWeek((prev) => prev.subtract(1, 'week'))
   }
 
   const goToNextWeek = () => {
-    setCurrentWeek((prev) => {
-      const nextWeek = prev.add(1, 'week')
-      setSearchParams({ week: nextWeek.format('YYYY-MM-DD') }, { replace: true })
-      return nextWeek
-    })
+    setCurrentWeek((prev) => prev.add(1, 'week'))
   }
+
+  useEffect(() => {
+    const nextWeekValue = currentWeek.format('YYYY-MM-DD')
+    if (weekParam === nextWeekValue) return
+    setSearchParams({ week: nextWeekValue }, { replace: true })
+  }, [currentWeek, weekParam, setSearchParams])
 
   const getCellKey = (date, slot) => `${date}-${slot}`
 
@@ -251,8 +249,7 @@ export default function CalendarPage() {
   return (
     <Page className="pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
       <Navbar
-          title="Planning"
-          subtitle={subtitle}
+          title={subtitle}
           left={
             <Button clear small onClick={goToPreviousWeek} title="Semaine precedente">
               <ArrowLeftIcon size={30} />
