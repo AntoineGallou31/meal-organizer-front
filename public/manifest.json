@@ -4,7 +4,7 @@
   "description": "Planification hebdomadaire des repas pour deux.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f1e8",
+  "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "icons": [
     {
