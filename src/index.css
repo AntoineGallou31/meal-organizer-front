@@ -1,23 +1,105 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
 @import 'tailwindcss';
-@import 'konsta/theme.css';
 
 @source './**/*.{js,jsx,ts,tsx}';
-@source '../node_modules/konsta/**/*.{js,jsx,ts,tsx}';
 
 @theme {
+  --font-sans: 'Poppins', sans-serif;
+  --font-display: 'Poppins', sans-serif;
+
+  --shadow-soft: 0 20px 60px rgba(51, 34, 22, 0.12);
+
+  --color-sage-50: #f3f7f2;
+  --color-sage-100: #e3ece0;
+  --color-sage-200: #cadac3;
+  --color-sage-300: #afc6a6;
+  --color-sage-400: #90af83;
+  --color-sage-500: #73946a;
+  --color-sage-600: #5d7855;
+  --color-sage-700: #486045;
+  --color-sage-800: #354739;
+  --color-sage-900: #203129;
+
+  --color-cream-50: #fffaf4;
+  --color-cream-100: #f9f1e5;
+  --color-cream-200: #f0e1cb;
+  --color-cream-300: #e7cfac;
+  --color-cream-400: #ddb98b;
+  --color-cream-500: #c9a06b;
+  --color-cream-600: #a97f49;
+  --color-cream-700: #886337;
+  --color-cream-800: #664b29;
+  --color-cream-900: #4a3820;
+
+  --color-terracotta-50: #fff3ef;
+  --color-terracotta-100: #ffe1d7;
+  --color-terracotta-200: #ffcab8;
+  --color-terracotta-300: #f3a98f;
+  --color-terracotta-400: #ec8c70;
+  --color-terracotta-500: #df6f52;
+  --color-terracotta-600: #c85d43;
+  --color-terracotta-700: #a44631;
+  --color-terracotta-800: #833726;
+  --color-terracotta-900: #642819;
+
+  --color-charcoal-50: #f5f4f2;
+  --color-charcoal-100: #e7e4df;
+  --color-charcoal-200: #cec8c0;
+  --color-charcoal-300: #aaa39a;
+  --color-charcoal-400: #867d73;
+  --color-charcoal-500: #665d54;
+  --color-charcoal-600: #51473f;
+  --color-charcoal-700: #3f372f;
+  --color-charcoal-800: #2d2721;
+  --color-charcoal-900: #1e1915;
+  --color-charcoal-950: #120f0c;
+
+  --animate-sheet-up: sheet-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-sheet-down: sheet-down 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  --animate-page-enter: page-enter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @layer base {
   :root {
     color-scheme: light;
+    --app-bg-start: #fff8f0;
+    --app-bg-mid: #f8ece2;
+    --app-bg-end: #efe5da;
+  }
+
+  html {
+    min-height: 100%;
+    background:
+      radial-gradient(circle at top left, rgba(223, 111, 82, 0.16), transparent 34%),
+      radial-gradient(circle at top right, rgba(93, 120, 85, 0.18), transparent 28%),
+      linear-gradient(180deg, var(--app-bg-start), var(--app-bg-mid) 48%, var(--app-bg-end));
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--color-charcoal-800);
+    background: transparent;
+    font-family: var(--font-sans);
   }
 
   * {
     @apply box-border;
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
   }
 
   *::-webkit-scrollbar {
@@ -28,6 +110,53 @@
 
   #root {
     @apply min-h-screen;
+    isolation: isolate;
+  }
+
+  @keyframes sheet-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 1.25rem, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes sheet-down {
+    from {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    to {
+      opacity: 0;
+      transform: translate3d(0, 1rem, 0);
+    }
+  }
+
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.85rem, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+}
+
+@layer utilities {
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .page-enter {
+    animation: var(--animate-page-enter);
   }
 }
 

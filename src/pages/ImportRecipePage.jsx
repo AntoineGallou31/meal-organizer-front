@@ -11,7 +11,7 @@ import {
   Navbar,
   Page,
   Preloader,
-} from 'konsta/react'
+} from '../components/ui'
 import { api } from '../lib/api'
 
 function formatMissingFieldLabel(field) {

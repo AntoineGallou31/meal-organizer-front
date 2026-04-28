@@ -13,7 +13,7 @@ import {
   Page,
   Preloader,
   Sheet,
-} from 'konsta/react'
+} from '../components/ui'
 import { api } from '../lib/api'
 import { getWeekDays, getWeekKey, formatWeekLabel } from '../lib/week'
 
@@ -189,7 +189,7 @@ export default function CalendarPage() {
                 <Button
                   clear
                   small
-                  className="text-red-600!"
+                  className="text-red-600"
                   title="Vider le créneau"
                   disabled={clearMealSlotMutation.isPending}
                   onClick={(event) => {
@@ -225,7 +225,7 @@ export default function CalendarPage() {
                 <Button
                   clear
                   small
-                  className="text-red-600!"
+                  className="text-red-600"
                   title="Supprimer cet élément"
                   disabled={removeMealPlanItemMutation.isPending}
                   onClick={(event) => {
@@ -315,8 +315,6 @@ export default function CalendarPage() {
         <Sheet
           opened={Boolean(actionTarget)}
           onBackdropClick={closeSlotActions}
-          className="z-70!"
-          backdropClassName="z-60!"
         >
           <div className="p-4">
             <div className="mb-3 text-base font-semibold text-sage-900">Ajouter dans cette case</div>
@@ -349,8 +347,6 @@ export default function CalendarPage() {
         <Sheet
           opened={Boolean(noteTarget)}
           onBackdropClick={closeNoteEditor}
-          className="z-70!"
-          backdropClassName="z-60!"
         >
           <div className="p-4">
             <div className="mb-3 text-base font-semibold text-sage-900">Ajouter une note</div>

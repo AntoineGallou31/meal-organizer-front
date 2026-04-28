@@ -1,5 +1,4 @@
 import { Route, Routes } from 'react-router-dom'
-import { App as KonstaApp } from 'konsta/react'
 import BottomNav from './components/BottomNav'
 import CalendarPage from './pages/CalendarPage'
 import RecipeFormPage from './pages/RecipeFormPage'
@@ -14,8 +13,8 @@ function AppLayout() {
   useKeepAlive(`${API_URL}/health`, 10)
 
   return (
-    <KonstaApp theme="ios" safeAreas>
-      <main className="pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
+    <>
+      <main className="pb-[calc(6rem+env(safe-area-inset-bottom))]">
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/recipes" element={<RecipesPage />} />
@@ -27,7 +26,7 @@ function AppLayout() {
       </main>
 
       <BottomNav />
-    </KonstaApp>
+    </>
   )
 }
 

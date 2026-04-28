@@ -13,7 +13,7 @@ import {
   Navbar,
   Page,
   Preloader,
-} from 'konsta/react'
+} from '../components/ui'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { MONTHS } from '../lib/seasonality'
@@ -253,7 +253,7 @@ function RecipeFormFields({
                 <ListItem
                   key={category.id}
                   title={category.name}
-                  className={checked ? 'bg-sage-50!' : ''}
+                  className={checked ? 'bg-sage-50' : ''}
                   onClick={() => toggleCategory(category.id)}
                   after={
                     <input
@@ -299,7 +299,7 @@ function RecipeFormFields({
 
       {categoryError ? (
         <List inset strong>
-          <ListItem className="text-red-700!" title={categoryError} />
+          <ListItem className="text-red-700" title={categoryError} />
         </List>
       ) : null}
 
@@ -324,7 +324,7 @@ function RecipeFormFields({
             <ListItem
               key={month.id}
               title={month.label}
-              className={checked ? 'bg-blue-50!' : ''}
+                className={checked ? 'bg-blue-50' : ''}
               onClick={() => toggleMonth(month.value)}
               after={
                 <input
@@ -349,7 +349,7 @@ function RecipeFormFields({
               return (
                 <Chip
                   key={month}
-                  className="bg-blue-100! text-blue-800!"
+                  className="bg-blue-100 text-blue-800"
                   media={
                     <button
                       type="button"

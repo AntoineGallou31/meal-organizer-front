@@ -13,7 +13,7 @@ import {
   Page,
   Preloader,
   Sheet,
-} from 'konsta/react'
+} from '../components/ui'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { getUpcomingDays } from '../lib/week'
@@ -191,7 +191,7 @@ export default function RecipeDetailPage() {
             </>
           ) : (
             <>
-              <Block strong className="overflow-hidden rounded-2xl bg-white p-0!">
+              <Block strong className="overflow-hidden rounded-2xl bg-white p-0">
                 {recipe.imageUrl ? (
                   <img src={recipe.imageUrl} alt={recipe.title} className="h-52 w-full object-cover" />
                 ) : (
@@ -232,7 +232,7 @@ export default function RecipeDetailPage() {
                     {recipe.categories.map((category) => (
                       <Chip
                         key={category.id}
-                        className="text-sage-900!"
+                        className="text-sage-900"
                         style={{ backgroundColor: category.color || '#e5e7eb' }}
                       >
                         {category.name}
@@ -244,7 +244,7 @@ export default function RecipeDetailPage() {
                 {(recipe.months ?? []).length > 0 ? (
                   <div className="flex flex-wrap gap-2 px-4 pb-4">
                     {recipe.months.map((month) => (
-                      <Chip key={month} className="bg-blue-100! text-blue-800!">
+                      <Chip key={month} className="bg-blue-100 text-blue-800">
                         {month}
                       </Chip>
                     ))}
@@ -334,7 +334,7 @@ export default function RecipeDetailPage() {
                 <Button
                   large
                   tonal
-                  className="w-full text-red-700!"
+                  className="w-full text-red-700"
                   disabled={deleteRecipeMutation.isPending}
                   onClick={() => setDeleteConfirmOpen(true)}
                 >
@@ -436,7 +436,7 @@ export default function RecipeDetailPage() {
               Annuler
             </Button>
             <Button
-              className="bg-red-600!"
+              className="bg-red-600"
               disabled={deleteRecipeMutation.isPending || !recipe}
               onClick={() => {
                 if (!recipe) return

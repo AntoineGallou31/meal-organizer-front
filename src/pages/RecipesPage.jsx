@@ -13,8 +13,7 @@ import {
   Page,
   Preloader,
   Searchbar,
-  Sheet,
-} from 'konsta/react'
+} from '../components/ui'
 import { api } from '../lib/api'
 import { MONTHS } from '../lib/seasonality'
 
@@ -348,7 +347,7 @@ export default function RecipesPage() {
               </div>
             </div>
 
-            <Button clear small className="text-sage-700!" onClick={() => setShowFilters(false)} title="Fermer">
+            <Button clear small className="text-sage-700" onClick={() => setShowFilters(false)} title="Fermer">
               <X size={30} />
             </Button>
           </div>
