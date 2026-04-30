@@ -324,7 +324,7 @@ export default function RecipeDetailPage() {
               <List inset strong>
                 {(recipe.steps ?? []).length > 0 ? (
                   (recipe.steps ?? []).map((step, index) => (
-                    <ListItem key={`${step}-${index}`} title={`${index + 1}. ${step}`} />
+                    <ListItem key={`${step}-${index}`} />
                   ))
                 ) : (
                   <ListItem
@@ -369,6 +369,20 @@ export default function RecipeDetailPage() {
                     <Trash2 size={16} /> Supprimer
                   </span>
                 </Button>
+
+                {showReliabilityWarning ? (
+                  <div className="pt-2">
+                    <Button
+                      large
+                      className="w-full"
+                      tonal
+                      onClick={() => declareReliableMutation.mutate()}
+                      disabled={declareReliableMutation.isPending}
+                    >
+                      {declareReliableMutation.isPending ? 'Validation...' : 'Valider la recette (fiable)'}
+                    </Button>
+                  </div>
+                ) : null}
               </Block>
 
               {assignMealMutation.isError ? (
