@@ -65,19 +65,6 @@ export default function ImportRecipePage() {
     importMutation.mutate({ importUrl: url })
   }
 
-  const handleConfirmIncompleteImport = () => {
-    if (!titleVerificationPrompt) return
-    const importUrl =
-      titleVerificationPrompt?.scrapedContent?.sourceUrl ||
-      titleVerificationPrompt?.recipePreview?.sourceUrl ||
-      url
-    if (!importUrl) return
-    importMutation.mutate({
-      importUrl,
-      forceImportMode: 'incomplete',
-    })
-  }
-
   const handleConfirmContentlessImport = () => {
     if (!titleVerificationPrompt) return
     const importUrl =
@@ -88,6 +75,19 @@ export default function ImportRecipePage() {
     importMutation.mutate({
       importUrl,
       forceImportMode: 'contentless',
+    })
+  }
+
+  const handleConfirmForcedImport = () => {
+    if (!titleVerificationPrompt) return
+    const importUrl =
+      titleVerificationPrompt?.scrapedContent?.sourceUrl ||
+      titleVerificationPrompt?.recipePreview?.sourceUrl ||
+      url
+    if (!importUrl) return
+    importMutation.mutate({
+      importUrl,
+      forceImportMode: 'incomplete',
     })
   }
 
@@ -110,7 +110,7 @@ export default function ImportRecipePage() {
     ? 'La récupération de cette recette présente des problèmes'
     : 'L\'importation de cette recette présente des incohérences'
   const reviewDescription = isHardValidation
-    ? 'Le titre ou la photo semble incorrect(e). Vous pouvez annuler l\'import, ou importer quand même la recette en statut "à completer".'
+    ? 'Le titre ou la photo semble incorrect(e). Vous pouvez annuler l\'import, ou importer quand même la recette.'
     : 'Les ingrédients ou la préparation semblent incohérents. La recette peut être importée, mais sans ses ingrédients ni sa préparation.'
 
   return (
@@ -254,8 +254,8 @@ export default function ImportRecipePage() {
               </Button>
 
               {canForceIncomplete ? (
-                <Button type="button" onClick={handleConfirmIncompleteImport} disabled={importMutation.isPending}>
-                  Importer en "à completer"
+                <Button type="button" onClick={handleConfirmForcedImport} disabled={importMutation.isPending}>
+                  Importer quand même
                 </Button>
               ) : null}
 

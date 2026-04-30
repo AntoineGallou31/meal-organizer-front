@@ -121,35 +121,8 @@ export default function CalendarPage() {
     setNoteValue('')
   }
 
-  const isRecipeToComplete = (recipe) => {
-    if (!recipe) return false
-
-    if (recipe.incomplete || recipe.importMode === 'incomplete') {
-      return true
-    }
-
-    if (recipe.restrictedDetail) {
-      return true
-    }
-
-    return (recipe.categories ?? []).some((category) => {
-      const categoryName = String(category?.name ?? '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim()
-
-      return categoryName === 'a completer'
-    })
-  }
-
   const openMealRecipe = (recipe) => {
     if (!recipe?.id) return
-
-    if (isRecipeToComplete(recipe) && recipe.sourceUrl) {
-      window.location.assign(recipe.sourceUrl)
-      return
-    }
 
     navigate(`/recipes/${recipe.id}`)
   }

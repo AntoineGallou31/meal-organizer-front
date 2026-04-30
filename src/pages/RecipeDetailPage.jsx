@@ -98,14 +98,21 @@ export default function RecipeDetailPage() {
     },
   })
 
+  const declareReliableMutation = useMutation({
+    mutationFn: () => api.updateRecipe(id, { confidence: 100 }),
+    onSuccess: (updatedRecipe) => {
+      queryClient.setQueryData(['recipe', id], updatedRecipe)
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+    },
+  })
+
   const recipe = recipeQuery.data
-  const restrictedDetail = Boolean(recipe?.restrictedDetail)
   const reliabilityScore = Number(recipe?.confidence)
   const hasReliabilityScore = Number.isFinite(reliabilityScore)
   const showReliabilityWarning = hasReliabilityScore && reliabilityScore < 40
   const ingredientCount = (recipe?.ingredients ?? []).length
   const stepCount = (recipe?.steps ?? []).length
-  const showSourceOnlyDetail = Boolean(recipe && (restrictedDetail || ingredientCount === 0 || stepCount === 0))
+  const showSourceOnlyDetail = Boolean(recipe && (ingredientCount === 0 || stepCount === 0))
   const upcomingDays = getUpcomingDays(14)
   const baseServings = Number(recipe?.servings)
   const desiredServings = Number(targetServings)
@@ -161,6 +168,26 @@ export default function RecipeDetailPage() {
                   <p className="mt-1 text-amber-800">
                     Attention: cette recette n&apos;est peut-etre pas totalement fiable. Verifiez les ingredients et les etapes avant de cuisiner.
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {recipe.sourceUrl ? (
+                      <a
+                        href={recipe.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
+                      >
+                        Voir la recette originale
+                      </a>
+                    ) : null}
+                    <Button
+                      tonal
+                      small
+                      onClick={() => declareReliableMutation.mutate()}
+                      disabled={declareReliableMutation.isPending}
+                    >
+                      {declareReliableMutation.isPending ? 'Validation...' : 'Déclarer la recette fiable'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Block>
