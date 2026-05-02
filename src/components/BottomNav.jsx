@@ -21,7 +21,7 @@ export default function BottomNav() {
               key={item.to}
               to={item.to}
               className={[
-                'flex h-12 w-12 flex-1 items-center justify-center rounded-full transition',
+                'flex h-20 w-20 flex-1 items-center justify-center rounded-full transition',
                 isActive
                   ? 'text-terracotta-500'
                   : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
@@ -30,7 +30,7 @@ export default function BottomNav() {
               aria-label={item.label}
               title={item.label}
             >
-              <Icon size={20} className={isActive ? 'text-terracotta-500' : 'text-slate-600'} />
+              <Icon size={24} className={isActive ? 'text-terracotta-500' : 'text-slate-600'} />
             </Link>
           )
         })}

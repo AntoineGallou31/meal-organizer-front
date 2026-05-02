@@ -4,9 +4,9 @@ export default function List({ inset = false, strong = false, strongIos = false,
   return (
     <div
       className={clsx(
-        'overflow-hidden rounded-3xl border border-slate-200 bg-slate-50/90 shadow-sm',
+        'rounded-3xl border border-slate-200 bg-slate-50/90 p-4 backdrop-blur md:p-5 mb-6',
         strong || strongIos || outlineIos ? 'shadow-soft' : '',
-        inset ? 'mx-4' : '',
+        inset ? '' : '',
         className,
       )}
       {...props}

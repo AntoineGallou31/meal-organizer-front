@@ -218,7 +218,7 @@ export default function RecipeDetailPage() {
             </>
           ) : (
             <>
-              <Block strong className="overflow-hidden rounded-2xl bg-white p-0">
+              <Block strong className="overflow-hidden rounded-2xl bg-white p-0 mb-6">
                 {recipe.imageUrl ? (
                   <img src={recipe.imageUrl} alt={recipe.title} className="h-52 w-full object-cover" />
                 ) : (
@@ -324,7 +324,7 @@ export default function RecipeDetailPage() {
               <List inset strong>
                 {(recipe.steps ?? []).length > 0 ? (
                   (recipe.steps ?? []).map((step, index) => (
-                    <ListItem key={`${step}-${index}`} />
+                    <ListItem key={`${step}-${index}`} title={`${step}`} />
                   ))
                 ) : (
                   <ListItem
