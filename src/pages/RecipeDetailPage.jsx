@@ -158,7 +158,7 @@ export default function RecipeDetailPage() {
       ) : null}
 
       {recipe ? (
-        <Block className="space-y-2 pb-24">
+        <div>
           {showReliabilityWarning ? (
             <Block className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900">
               <div className="flex items-start gap-2 text-sm">
@@ -413,7 +413,7 @@ export default function RecipeDetailPage() {
               ) : null}
             </>
           )}
-        </Block>
+        </div>
       ) : null}
 
       <Sheet opened={plannerOpen} onBackdropClick={() => setPlannerOpen(false)}>

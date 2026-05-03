@@ -15,7 +15,7 @@ import {
   Sheet,
 } from '../components/ui'
 import { api } from '../lib/api'
-import { getWeekDays, getWeekKey, formatWeekLabel } from '../lib/week'
+import { getWeekDays, getWeekKey } from '../lib/week'
 
 export default function CalendarPage() {
   const queryClient = useQueryClient()
@@ -65,7 +65,7 @@ export default function CalendarPage() {
     return list.length ? list : getWeekDays(currentWeek)
   }, [mealPlanQuery.data, currentWeek])
 
-  const subtitle = formatWeekLabel(currentWeek)
+  const subtitle = "Planning";
 
   const goToPreviousWeek = () => {
     setCurrentWeek((prev) => prev.subtract(1, 'week'))
@@ -220,17 +220,17 @@ export default function CalendarPage() {
   }
 
   return (
-    <Page className="pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
+    <Page>
       <Navbar
           title={subtitle}
           left={
             <Button clear small onClick={goToPreviousWeek} title="Semaine precedente">
-              <ArrowLeftIcon size={30} />
+              <ArrowLeftIcon size={26} />
             </Button>
           }
           right={
             <Button clear small onClick={goToNextWeek} title="Semaine suivante">
-              <ArrowRightIcon size={30} />
+              <ArrowRightIcon size={26} />
             </Button>
           }
         />

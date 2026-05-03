@@ -11,7 +11,7 @@ export default function BottomNav() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50">
-      <nav className="flex w-full items-center gap-2 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-soft backdrop-blur-xl">
+      <nav className="flex w-full items-center gap-2 border-t border-slate-200 bg-white/90 px-4 py-2 shadow-soft backdrop-blur-xl">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)
@@ -21,7 +21,7 @@ export default function BottomNav() {
               key={item.to}
               to={item.to}
               className={[
-                'flex h-20 w-20 flex-1 items-center justify-center rounded-full transition',
+                'flex flex-col h-16 w-16 flex-1 items-center justify-center rounded-full transition',
                 isActive
                   ? 'text-terracotta-500'
                   : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
@@ -30,7 +30,8 @@ export default function BottomNav() {
               aria-label={item.label}
               title={item.label}
             >
-              <Icon size={24} className={isActive ? 'text-terracotta-500' : 'text-slate-600'} />
+              <Icon size={18} className={isActive ? 'text-terracotta-500' : 'text-slate-600'} />
+              <span className="mt-1 text-xs">{item.label}</span>
             </Link>
           )
         })}
