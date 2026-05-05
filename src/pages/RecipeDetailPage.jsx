@@ -267,16 +267,6 @@ export default function RecipeDetailPage() {
                     ))}
                   </div>
                 ) : null}
-
-                {(recipe.months ?? []).length > 0 ? (
-                  <div className="flex flex-wrap gap-2 px-4 pb-4">
-                    {recipe.months.map((month) => (
-                      <Chip key={month} className="bg-blue-100 text-blue-800">
-                        {month}
-                      </Chip>
-                    ))}
-                  </div>
-                ) : null}
               </Block>
 
               <BlockTitle>Ingrédients</BlockTitle>
