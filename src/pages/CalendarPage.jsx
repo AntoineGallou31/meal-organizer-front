@@ -255,9 +255,9 @@ export default function CalendarPage() {
     const isEditing = editingSlot?.date === day.date && editingSlot?.slot === slot
 
     return (
-      <div key={cellKey} className="mb-5 px-4">
+      <div key={cellKey} className="mb-2 px-2">
         {/* Sous-titre du repas à gauche */}
-        <h3 className="text-left font-medium text-sm mb-3 text-sage-700">{label}</h3>
+        <h3 className="text-left font-medium text-sm mb-1 text-sage-700">{label}</h3>
 
         {/* Card du repas */}
         <div className="border border-sage-200 rounded-lg overflow-hidden bg-white">
@@ -437,10 +437,10 @@ export default function CalendarPage() {
         {mealPlanQuery.data ? (
           <>
             {days.map((day) => (
-              <div key={day.date} className="mb-8">
+              <div key={day.date} className="mb-4">
                 {/* Titre du jour centré */}
-                <div className="text-center mb-6 mt-6">
-                  <h2 className="text-xl font-semibold text-sage-900">
+                <div className="text-center mt-2">
+                  <h2 className="text-lg font-semibold text-sage-900">
                     {dayjs(day.date).format('dddd DD MMMM')}
                   </h2>
                 </div>
