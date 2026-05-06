@@ -178,6 +178,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ date, slot, type, recipeId, note, position }),
     }),
+  updateMealPlanItem: (id, payload) =>
+    apiRequest(`/api/meal-plan/items/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   removeMealPlanItem: ({ id }) =>
     apiRequest(`/api/meal-plan/items/${id}`, {
       method: 'DELETE',

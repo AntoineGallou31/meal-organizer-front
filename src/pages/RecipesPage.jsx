@@ -24,10 +24,10 @@ function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
   const content = (
     <>
       {recipe.imageUrl ? (
-        <img src={recipe.imageUrl} alt={recipe.title} className="w-full object-cover" loading="lazy" />
+        <img src={recipe.imageUrl} alt={recipe.title} className="h-40 w-full object-cover" loading="lazy" />
       ) : (
-        <div className="flex min-h-28 items-center justify-center bg-gray-100 px-3 text-center text-xs text-gray-500">
-          Pas de photo
+        <div className="flex h-40 items-center justify-center bg-gray-100 px-3 text-center text-xs text-gray-500">
+          Image non disponible
         </div>
       )}
       <div className="px-3 py-2 text-sm font-medium text-gray-900">
@@ -252,7 +252,7 @@ export default function RecipesPage() {
         }
       />
 
-      <div className="flex items-center gap-2 px-4 py-4 pt-1">
+      <div className="flex items-center gap-2 py-4 pt-1">
         <Searchbar
           placeholder="Rechercher une recette"
           value={search}
@@ -274,7 +274,7 @@ export default function RecipesPage() {
         </Fab>
       </div>
 
-      <div className="px-4 pb-3">
+      <div className="pb-3">
         <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">
           <Chip
             className={`shrink-0 ${
@@ -332,7 +332,7 @@ export default function RecipesPage() {
       {!recipesQuery.isLoading && !recipesQuery.isError ? (
         filteredRecipes.length ? (
           <>
-            <div className="flex gap-3 px-4 pb-6">
+            <div className="flex gap-3 pb-6">
               {recipeColumns.map((column, columnIndex) => (
                 <div key={`column-${columnIndex}`} className="flex min-w-0 flex-1 flex-col gap-3">
                   {column.map((recipe) => (

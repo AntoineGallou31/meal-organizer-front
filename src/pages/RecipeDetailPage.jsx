@@ -260,12 +260,23 @@ export default function RecipeDetailPage() {
                   <img src={recipe.imageUrl} alt={recipe.title} className="h-52 w-full object-cover" />
                 ) : (
                   <div className="flex h-52 items-center justify-center bg-linear-to-br from-sage-200 to-terracotta-200 text-sm font-semibold text-sage-800">
-                    Aucune photo disponible
+                    Image non disponible
                   </div>
                 )}
 
                 <div className="px-4 pt-4">
-                  <h1 className="text-xl font-semibold text-sage-900">{recipe.title}</h1>
+                  {recipe.sourceUrl ? (
+                    <a
+                      href={recipe.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xl font-semibold text-sage-900 hover:text-terracotta-600"
+                    >
+                      {recipe.title}
+                    </a>
+                  ) : (
+                    <h1 className="text-xl font-semibold text-sage-900">{recipe.title}</h1>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-4 p-2 text-sm text-sage-700">
@@ -293,24 +304,10 @@ export default function RecipeDetailPage() {
                   </span>
                 ) : null}
                 </div>
-
-                {recipe.sourceUrl ? (
-                  <div className="px-4 pb-4 text-sm text-sage-700">
-                    <a
-                      href={recipe.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="break-all font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
-                    >
-                      {recipe.sourceUrl}
-                    </a>
-                  </div>
-                ) : null}
-
               </Block>
 
               <BlockTitle>Ingrédients</BlockTitle>
-              <List inset strong>
+              <List>
                 {Number.isFinite(baseServings) && baseServings > 0 ? (
                   <PortionInput
                     label="Portions"
@@ -349,7 +346,7 @@ export default function RecipeDetailPage() {
               </List>
 
               <BlockTitle>Préparation</BlockTitle>
-              <List inset strong>
+              <List>
                 {(recipe.steps ?? []).length > 0 ? (
                   (recipe.steps ?? []).map((step, index) => (
                     <ListItem key={`${step}-${index}`} title={`${step}`} />
