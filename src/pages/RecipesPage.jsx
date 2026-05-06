@@ -100,6 +100,7 @@ export default function RecipesPage() {
   const [prepMax, setPrepMax] = useState('')
   const [sort, setSort] = useState('oldest')
   const [showFilters, setShowFilters] = useState(false)
+  const [columnCount, setColumnCount] = useState(2)
   const loadMoreRef = useRef(null)
   const selectionMode = searchParams.get('mode') === 'select'
   const selectedDate = searchParams.get('date') ?? ''
@@ -150,6 +151,14 @@ export default function RecipesPage() {
   const hasNextPage = recipesQuery.hasNextPage
   const isFetchingNextPage = recipesQuery.isFetchingNextPage
   const fetchNextPage = recipesQuery.fetchNextPage
+
+  const recipeColumns = useMemo(() => {
+    const columns = Array.from({ length: columnCount }, () => [])
+    filteredRecipes.forEach((recipe, index) => {
+      columns[index % columnCount].push(recipe)
+    })
+    return columns
+  }, [filteredRecipes, columnCount])
 
   const hasActiveFilters =
     search.trim() !== '' ||
@@ -203,6 +212,23 @@ export default function RecipesPage() {
     observer.observe(node)
     return () => observer.disconnect()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 640px)')
+
+    const updateColumns = () => {
+      setColumnCount(mediaQuery.matches ? 3 : 2)
+    }
+
+    updateColumns()
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', updateColumns)
+      return () => mediaQuery.removeEventListener('change', updateColumns)
+    }
+
+    mediaQuery.addListener(updateColumns)
+    return () => mediaQuery.removeListener(updateColumns)
+  }, [])
 
   return (
     <Page>
@@ -306,15 +332,19 @@ export default function RecipesPage() {
       {!recipesQuery.isLoading && !recipesQuery.isError ? (
         filteredRecipes.length ? (
           <>
-            <div className="columns-2 gap-3 px-4 pb-6 sm:columns-3">
-              {filteredRecipes.map((recipe) => (
-                <RecipeTile
-                  key={recipe.id}
-                  recipe={recipe}
-                  selectionMode={selectionMode}
-                  disabled={pickRecipeMutation.isPending}
-                  onPick={handleRecipeClick}
-                />
+            <div className="flex gap-3 px-4 pb-6">
+              {recipeColumns.map((column, columnIndex) => (
+                <div key={`column-${columnIndex}`} className="flex min-w-0 flex-1 flex-col gap-3">
+                  {column.map((recipe) => (
+                    <RecipeTile
+                      key={recipe.id}
+                      recipe={recipe}
+                      selectionMode={selectionMode}
+                      disabled={pickRecipeMutation.isPending}
+                      onPick={handleRecipeClick}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ChevronLeft, Clock3, Pencil, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Clock3, Pencil, Trash2, Users, MoreVertical } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import {
   Block,
   BlockTitle,
@@ -143,6 +144,40 @@ export default function RecipeDetailPage() {
             <ChevronLeft size={30} />
           </Button>
         }
+        right={
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button clear small title="Actions">
+                <MoreVertical size={20} />
+              </Button>
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Content className="min-w-[200px] bg-white rounded-lg shadow-md p-1 z-50">
+              <DropdownMenu.Item
+                className="px-3 py-2 text-sm cursor-pointer rounded hover:bg-sage-50 focus:outline-none focus:bg-sage-50 flex items-center gap-2"
+                onSelect={() => setPlannerOpen(true)}
+              >
+                Ajouter au calendrier
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Item
+                className="px-3 py-2 text-sm cursor-pointer rounded hover:bg-sage-50 focus:outline-none focus:bg-sage-50 flex items-center gap-2"
+                onSelect={() => navigate(`/recipes/${id}/edit`)}
+              >
+                Modifier
+              </DropdownMenu.Item>
+
+              <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+              <DropdownMenu.Item
+                className="px-3 py-2 text-sm cursor-pointer rounded text-red-700 hover:bg-red-50 focus:outline-none focus:bg-red-50 flex items-center gap-2"
+                onSelect={() => setDeleteConfirmOpen(true)}
+              >
+                Supprimer
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        }
       />
 
       {recipeQuery.isLoading ? (
@@ -195,29 +230,30 @@ export default function RecipeDetailPage() {
           ) : null}
 
           {showSourceOnlyDetail ? (
-            <>
-              <BlockTitle>Lien de la recette</BlockTitle>
-              <List inset strong>
-                <ListItem
-                  title="Cette recette ne contient pas de details exploitables"
-                  text={
-                    recipe.sourceUrl ? (
+            <Block className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 mb-4">
+              <div className="flex items-start gap-2 text-sm">
+                <AlertTriangle size={30} className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold">Détails manquants</div>
+                  <p className="mt-1 text-amber-800">
+                    Cette recette semble incomplète (ingrédients ou étapes manquants). Vérifiez la source avant utilisation.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {recipe.sourceUrl ? (
                       <a
                         href={recipe.sourceUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="break-all font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                        className="inline-flex items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
                       >
-                        {recipe.sourceUrl}
+                        Voir la recette originale
                       </a>
-                    ) : (
-                      'Aucun lien source disponible'
-                    )
-                  }
-                />
-              </List>
-            </>
-          ) : (
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </Block>
+          ) : null}
             <>
               <Block strong className="overflow-hidden rounded-2xl bg-white p-0 mb-6">
                 {recipe.imageUrl ? (
@@ -232,31 +268,9 @@ export default function RecipeDetailPage() {
                   <h1 className="text-xl font-semibold text-sage-900">{recipe.title}</h1>
                 </div>
 
-                <div className="flex flex-wrap gap-4 p-4 text-sm text-sage-700">
-                  <span className="inline-flex items-center gap-2">
-                    <Clock3 size={15} /> {recipe.prepTime ? `${recipe.prepTime} min` : 'Temps inconnu'}
-                  </span>
-                  <span className="inline-flex items-center gap-2">
-                    <Users size={15} /> {recipe.servings ?? '-'} personnes
-                  </span>
-                </div>
-
-                {recipe.sourceUrl ? (
-                  <div className="px-4 pb-4 text-sm text-sage-700">
-                    <div className="mb-1 font-medium text-sage-800">Lien de la recette</div>
-                    <a
-                      href={recipe.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="break-all font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
-                    >
-                      {recipe.sourceUrl}
-                    </a>
-                  </div>
-                ) : null}
-
+                <div className="flex flex-wrap gap-4 p-2 text-sm text-sage-700">
                 {(recipe.categories ?? []).length > 0 ? (
-                  <div className="flex flex-wrap gap-2 px-4 pb-4">
+                  <div className="flex flex-wrap gap-1">
                     {recipe.categories.map((category) => (
                       <Chip
                         key={category.id}
@@ -268,6 +282,31 @@ export default function RecipeDetailPage() {
                     ))}
                   </div>
                 ) : null}
+                {recipe.prepTime ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock3 size={15} /> {recipe.prepTime} min
+                  </span>
+                ) : null}
+                {recipe.servings ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Users size={15} /> {recipe.servings} personnes
+                  </span>
+                ) : null}
+                </div>
+
+                {recipe.sourceUrl ? (
+                  <div className="px-4 pb-4 text-sm text-sage-700">
+                    <a
+                      href={recipe.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all font-semibold text-terracotta-700 underline underline-offset-2 hover:text-terracotta-600"
+                    >
+                      {recipe.sourceUrl}
+                    </a>
+                  </div>
+                ) : null}
+
               </Block>
 
               <BlockTitle>Ingrédients</BlockTitle>
@@ -401,7 +440,6 @@ export default function RecipeDetailPage() {
                 </>
               ) : null}
             </>
-          )}
         </div>
       ) : null}
 
@@ -453,6 +491,7 @@ export default function RecipeDetailPage() {
           </div>
         </div>
       </Sheet>
+
 
       <Sheet opened={deleteConfirmOpen} onBackdropClick={() => setDeleteConfirmOpen(false)}>
         <div className="p-4">
