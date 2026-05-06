@@ -6,7 +6,7 @@ export default function Searchbar({ value, onChange, disableButton, onDisableBut
     <div className={clsx('flex w-full items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-3 shadow-sm', className)}>
       <Search size={18} className="shrink-0 text-slate-500" />
       <input
-        type="search"
+        type="text"
         value={value}
         onChange={onChange}
         placeholder={placeholder}
