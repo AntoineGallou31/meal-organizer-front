@@ -8,6 +8,7 @@ import {
   Chip,
   List,
   ListInput,
+  PortionInput,
   ListItem,
   Navbar,
   Page,
@@ -272,15 +273,13 @@ export default function RecipeDetailPage() {
               <BlockTitle>Ingrédients</BlockTitle>
               <List inset strong>
                 {Number.isFinite(baseServings) && baseServings > 0 ? (
-                  <ListInput
+                  <PortionInput
                     label="Portions"
-                    type="number"
-                    min="1"
-                    step="1"
+                    min={1}
                     value={displayedTargetServings}
-                    onChange={(event) => setTargetServings(event.target.value)}
-                    onFocus={() => {
-                      if (targetServings === '') {
+                    onChange={(event) => {
+                      setTargetServings(event.target.value)
+                      if (event.target.value === '') {
                         setTargetServings(String(baseServings))
                       }
                     }}
