@@ -33,21 +33,7 @@ function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
       <div className="px-3 py-2 text-sm font-medium text-gray-900">
         <div className="flex items-center justify-between">
           <span>{recipe.title}</span>
-          {selectionMode && (
-            <Link
-              to={`/recipes/${recipe.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="ml-2 inline-block text-xs text-blue-600 hover:underline"
-            >
-              Voir
-            </Link>
-          )}
         </div>
-        {selectionMode ? (
-          <div className="mt-1 text-xs text-gray-500">
-            Choisir cette recette
-          </div>
-        ) : null}
       </div>
     </>
   )
@@ -186,8 +172,8 @@ export default function RecipesPage() {
     pickRecipeMutation.mutate({
       date: selectedDate,
       slot: selectedSlot,
-      type: 'recipe',
-      recipeId: recipe.id,
+      type: 'note',
+      note: `[@${recipe.title}|${recipe.id}]`,
     })
   }
 

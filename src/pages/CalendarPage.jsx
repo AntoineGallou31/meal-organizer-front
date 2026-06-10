@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeftIcon, ArrowRightIcon, Plus, Trash2 } from 'lucide-react'
 import dayjs from 'dayjs'
@@ -16,6 +16,7 @@ import {
 } from '../components/ui'
 import { api } from '../lib/api'
 import { getWeekDays, getWeekKey } from '../lib/week'
+import NoteEditor from '../components/NoteEditor'
 
 export default function CalendarPage() {
   const queryClient = useQueryClient()
@@ -28,6 +29,7 @@ export default function CalendarPage() {
   const [atSuggestions, setAtSuggestions] = useState([])
   const [atPosition, setAtPosition] = useState(null)
   const [allRecipes, setAllRecipes] = useState([])
+  const todayRef = useRef(null)
 
   const weekKey = getWeekKey(currentWeek)
 
@@ -47,6 +49,12 @@ export default function CalendarPage() {
       setAllRecipes(recipesQuery.data.items)
     }
   }, [recipesQuery.data])
+
+  useEffect(() => {
+    if (mealPlanQuery.data && todayRef.current) {
+      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [mealPlanQuery.data])
 
   const createMealPlanItemMutation = useMutation({
     mutationFn: api.createMealPlanItem,
@@ -113,16 +121,29 @@ export default function CalendarPage() {
 
   const getCellKey = (date, slot) => `${date}-${slot}`
 
-  const handleSaveNote = () => {
-    if (!editingSlot || !editingText.trim()) return
+  const handleSaveNote = (slotOverride, textOverride) => {
+    const slot = slotOverride ?? editingSlot
+    const text = textOverride ?? editingText
+    if (!slot || !text.trim()) return
     const payload = {
-      note: editingText.trim(),
+      note: text.trim(),
       type: 'note',
     }
-    if (editingSlot.itemId) {
-      updateMealPlanItemMutation.mutate({ id: editingSlot.itemId, payload })
+    if (slot.itemId) {
+      updateMealPlanItemMutation.mutate({ id: slot.itemId, payload })
     } else {
-      createMealPlanItemMutation.mutate({ date: editingSlot.date, slot: editingSlot.slot, ...payload })
+      createMealPlanItemMutation.mutate({ date: slot.date, slot: slot.slot, ...payload })
+    }
+  }
+
+  const handleNoteBlur = () => {
+    if (editingText.trim()) {
+      handleSaveNote()
+    } else if (editingSlot?.itemId) {
+      removeMealPlanItemMutation.mutate({ id: editingSlot.itemId })
+      stopEditingSlot()
+    } else {
+      stopEditingSlot()
     }
   }
 
@@ -257,21 +278,19 @@ export default function CalendarPage() {
     return (
       <div key={cellKey} className="mb-2 px-2">
         {/* Sous-titre du repas à gauche */}
-        <h3 className="text-left font-medium text-sm mb-1 text-sage-700">{label}</h3>
+        <h3 className="text-left text-xs mb-1 text-sage-700">{label}</h3>
 
         {/* Card du repas */}
         <div className="border border-sage-200 rounded-lg overflow-hidden bg-white">
           {isEditing ? (
             // Mode édition
-            <div className="p-4 space-y-3">
-              {/* Textarea */}
-              <textarea
+            <div className="p-2 space-y-1">
+              <NoteEditor
                 autoFocus
-                className="w-full p-2 border border-sage-200 rounded text-sm font-normal resize-none focus:outline-none focus:ring-2 focus:ring-sage-300"
                 placeholder="Ajoutez une note ou tapez @ pour une recette..."
-                rows={3}
                 value={editingText}
-                onChange={(e) => handleNoteChange(e.target.value)}
+                onChange={handleNoteChange}
+                onBlur={handleNoteBlur}
               />
 
               {/* Suggestions @ */}
@@ -281,6 +300,7 @@ export default function CalendarPage() {
                     <button
                       key={recipe.id}
                       className="w-full text-left px-3 py-2 hover:bg-sage-100 text-sm border-b border-sage-100 last:border-b-0"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => insertRecipe(recipe)}
                     >
                       {recipe.title}
@@ -289,29 +309,17 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {/* Boutons d'action */}
-              <div className="flex gap-2">
-                <Button
-                  tonal
-                  small
-                  className="flex-1"
-                  onClick={stopEditingSlot}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  small
-                  className="flex-1"
-                  disabled={(createMealPlanItemMutation.isPending || updateMealPlanItemMutation.isPending) || !editingText.trim()}
-                  onClick={handleSaveNote}
-                >
-                  {(createMealPlanItemMutation.isPending || updateMealPlanItemMutation.isPending) ? 'Enregistrement...' : 'Ajouter'}
-                </Button>
+              {/* Bouton recette */}
+              <div className="flex justify-end">
                 <Button
                   small
                   title="Ajouter une recette"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     if (!editingSlot) return
+                    if (editingText.trim()) {
+                      handleSaveNote()
+                    }
                     const params = new URLSearchParams({
                       mode: 'select',
                       date: editingSlot.date,
@@ -327,7 +335,7 @@ export default function CalendarPage() {
             </div>
           ) : (
             // Mode affichage : on n'autorise qu'une note par créneau
-            <div className="p-4">
+            <div className="p-2">
               {(() => {
                 const noteItem = slotItems.find((it) => it.type === 'note')
                 const recipeItems = slotItems.filter((it) => it.type === 'recipe')
@@ -367,29 +375,14 @@ export default function CalendarPage() {
                     {/* Note unique */}
                     {noteItem ? (
                       <div
-                        className="p-4 border border-sage-100 rounded hover:bg-sage-50 cursor-pointer"
+                        className="p-2 hover:bg-sage-50 cursor-pointer"
                         onClick={() => startEditingSlot(day.date, slot, noteItem)}
                       >
                         <div className="text-sm text-sage-800">{renderNoteContent(noteItem.note)}</div>
-                        <div className="mt-2 flex justify-end">
-                          <Button
-                            clear
-                            small
-                            className="text-red-600"
-                            title="Supprimer la note"
-                            disabled={removeMealPlanItemMutation.isPending}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              removeMealPlanItemMutation.mutate({ id: noteItem.id })
-                            }}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
                       </div>
                     ) : (
                       <button
-                        className="w-full p-4 text-center text-sm text-sage-600 hover:bg-sage-50 rounded"
+                        className="w-full p-2 text-center text-sm text-gray-400 hover:bg-sage-50 rounded"
                         onClick={() => startEditingSlot(day.date, slot)}
                       >
                         + Ajouter une note ou une recette
@@ -421,6 +414,12 @@ export default function CalendarPage() {
           }
         />
 
+        {(createMealPlanItemMutation.isPending || updateMealPlanItemMutation.isPending || removeMealPlanItemMutation.isPending) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60">
+            <Preloader size={36} />
+          </div>
+        )}
+
         {mealPlanQuery.isLoading ? (
           <div>
             <Preloader />
@@ -436,11 +435,13 @@ export default function CalendarPage() {
 
         {mealPlanQuery.data ? (
           <>
-            {days.map((day) => (
-              <div key={day.date} className="mb-4">
+            {days.map((day) => {
+              const isToday = dayjs(day.date).isSame(dayjs(), 'day')
+              return (
+              <div key={day.date} ref={isToday ? todayRef : null}>
                 {/* Titre du jour centré */}
-                <div className="text-center mt-2">
-                  <h2 className="text-lg font-semibold text-sage-900">
+                <div className="text-center">
+                  <h2 className={`text-sm font-semibold ${isToday ? 'text-terracotta-500' : 'text-sage-900'}`}>
                     {dayjs(day.date).format('dddd DD MMMM')}
                   </h2>
                 </div>
@@ -449,7 +450,8 @@ export default function CalendarPage() {
                 {renderMealCard(day, 'lunch', 'Midi')}
                 {renderMealCard(day, 'dinner', 'Soir')}
               </div>
-            ))}
+              )
+            })}
           </>
         ) : null}
 
