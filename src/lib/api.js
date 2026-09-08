@@ -24,6 +24,7 @@ function normalizeRecipe(recipe) {
     createdAt: recipe.createdAt ?? null,
     type: recipe.type ?? null,
     restrictedDetail: Boolean(recipe.restrictedDetail),
+    cookCount: Number.isInteger(recipe.cookCount) ? recipe.cookCount : 0,
     categories,
     months,
     steps,

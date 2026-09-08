@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Filter, Plus, X } from 'lucide-react'
+import { ChevronLeft, Filter, Flame, Plus, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
@@ -31,8 +31,14 @@ function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
         </div>
       )}
       <div className="px-3 py-2 text-sm font-medium text-gray-900">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span>{recipe.title}</span>
+          {recipe.cookCount > 0 ? (
+            <span className="flex shrink-0 items-center gap-0.5 text-xs font-normal text-gray-500">
+              <Flame size={12} />
+              {recipe.cookCount}
+            </span>
+          ) : null}
         </div>
       </div>
     </>
@@ -414,6 +420,7 @@ export default function RecipesPage() {
               <option value="oldest">Plus anciennes</option>
               <option value="newest">Plus récentes</option>
               <option value="prepTime">Temps de préparation</option>
+              <option value="popular">Les plus populaires</option>
             </ListInput>
           </List>
 

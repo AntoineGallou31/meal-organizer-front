@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ChevronLeft, Clock3, Pencil, Trash2, Users, MoreVertical } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Clock3, Flame, Pencil, Trash2, Users, MoreVertical } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import {
   Block,
@@ -288,6 +288,11 @@ export default function RecipeDetailPage() {
                 {recipe.servings ? (
                   <span className="inline-flex items-center gap-1">
                     <Users size={15} /> {recipe.servings} personnes
+                  </span>
+                ) : null}
+                {recipe.cookCount > 0 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Flame size={15} /> Faite {recipe.cookCount} fois
                   </span>
                 ) : null}
                 </div>
