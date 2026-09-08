@@ -421,7 +421,7 @@ export default function CalendarPage() {
         )}
 
         {mealPlanQuery.isLoading ? (
-          <div>
+          <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-gray-600">
             <Preloader />
             <span>Chargement du planning...</span>
           </div>
