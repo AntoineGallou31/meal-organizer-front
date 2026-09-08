@@ -370,7 +370,7 @@ export default function RecipesPage() {
           </div>
 
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-sage-600">Recherche</div>
-          <List strongIos outlineIos className="mb-4 overflow-hidden rounded-2xl">
+          <List   className="mb-4 overflow-hidden rounded-2xl">
             <ListInput
               label="Ingrédient"
               type="text"
@@ -390,7 +390,7 @@ export default function RecipesPage() {
           </List>
 
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-sage-600">Classement</div>
-          <List strongIos outlineIos className="overflow-hidden rounded-2xl">
+          <List   className="overflow-hidden rounded-2xl">
             <ListInput
               label="Mois"
               type="select"

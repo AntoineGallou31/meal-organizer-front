@@ -179,7 +179,7 @@ function RecipeFormFields({
   return (
     <form onSubmit={handleSubmit} className="pb-24">
       <BlockTitle>Informations</BlockTitle>
-      <List strongIos outlineIos>
+      <List>
         <ListInput type="text" label="Titre" name="title" required defaultValue={defaultValues.title} />
 
         <ListInput type="number" label="Temps (min)" name="prepTime" min="1" defaultValue={defaultValues.prepTime} />
@@ -238,7 +238,7 @@ function RecipeFormFields({
 
       {!categoriesQuery.isLoading && !categoriesQuery.isError ? (
         <>
-          <List strongIos outlineIos>
+          <List  >
             {categories.map((category) => {
               const checked = selectedCategoryIds.includes(category.id)
 
@@ -309,7 +309,7 @@ function RecipeFormFields({
       ) : null}
 
       <BlockTitle>Mois de disponibilité (optionnel)</BlockTitle>
-      <List strongIos outlineIos>
+      <List  >
         {MONTHS.map((month) => {
           const checked = selectedMonths.includes(month.value)
 
@@ -410,15 +410,7 @@ export default function RecipeFormPage() {
           </Button>
         }
         right={
-          <Fab
-            small
-            tonal
-            title="Importer une recette"
-            onClick={() => navigate('/recipes/import')}
-            className="rounded-full"
-          >
-            <Upload size={20} />
-          </Fab>
+            <Upload size={30} onClick={() => navigate('/recipes/import')}/>
         }
       />
 

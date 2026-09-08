@@ -421,7 +421,7 @@ export default function RecipeDetailPage() {
             <div className="text-sm text-sage-700">Ajoutez la recette dans votre calendrier</div>
           </div>
 
-          <List strongIos outlineIos>
+          <List  >
             <ListInput
               label="Jour"
               type="select"

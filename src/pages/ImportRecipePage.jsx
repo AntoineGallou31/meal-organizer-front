@@ -99,13 +99,12 @@ export default function ImportRecipePage() {
           <p className="mt-1 text-sm text-sage-700">
             Collez l'adresse de la recette complète. Le lien peut pointer vers un site de cuisine, un blog ou une page article contenant une vraie recette.
           </p>
-        </Block>
+        
 
         <form onSubmit={handleSubmit}>
-          <List strongIos outlineIos>
+          <List  >
             <ListInput
               type="url"
-              label="URL de la recette"
               required
               placeholder="https://..."
               value={url}
@@ -122,6 +121,7 @@ export default function ImportRecipePage() {
             </Button>
           </div>
         </form>
+      </Block>
 
         {importBlocked ? (
           <Block className="rounded-2xl bg-red-50 p-4 ring-1 ring-red-200">
@@ -162,7 +162,7 @@ export default function ImportRecipePage() {
                 </div>
               )}
 
-              <List strongIos outlineIos>
+              <List  >
                 <ListItem title="Titre" after={preview?.title || 'Titre introuvable'} />
                 <ListItem
                   title="Champs manquants"
