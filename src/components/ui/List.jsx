@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 
-export default function List({ inset = false, strong = false,  = false,  = false, className, ...props }) {
+export default function List({ ...props }) {
   return (
     <div
       className={clsx(
