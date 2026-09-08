@@ -33,12 +33,12 @@ function recipeToFormDefaults(recipe) {
 
   return {
     title: recipe.title ?? '',
-    imageUrl: recipe.imageUrl ?? recipe.image ?? '',
-    prepTime: recipe.prepTime ?? recipe.duration ?? '',
+    imageUrl: recipe.imageUrl ?? '',
+    prepTime: recipe.prepTime ?? '',
     servings: recipe.servings ?? '',
     sourceUrl: recipe.sourceUrl ?? '',
     ingredientsText: (recipe.ingredients ?? []).join('\n'),
-    stepsText: (recipe.instructions ?? recipe.steps ?? []).join('\n'),
+    stepsText: (recipe.steps ?? []).join('\n'),
   }
 }
 
@@ -58,17 +58,11 @@ function formToPayload(formData, { categories = [], selectedCategoryIds = [] } =
 
   return {
     title,
-    image: imageUrl || null,
     imageUrl: imageUrl || null,
-    duration: prepTime === '' ? null : Number(prepTime),
     prepTime: prepTime === '' ? null : Number(prepTime),
     servings: servings === '' ? null : Number(servings),
     sourceUrl: sourceUrl || null,
     ingredients: ingredientsText
-      .split('\n')
-      .map((item) => item.trim())
-      .filter(Boolean),
-    instructions: stepsText
       .split('\n')
       .map((item) => item.trim())
       .filter(Boolean),

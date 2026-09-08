@@ -5,47 +5,28 @@ function normalizeRecipe(recipe) {
     return recipe
   }
 
-  const categories = Array.isArray(recipe.categories)
-    ? recipe.categories
-    : Array.isArray(recipe.recipe_categories)
-      ? recipe.recipe_categories.map((relation) => relation?.categories).filter(Boolean)
-      : []
-
-  const months = Array.isArray(recipe.months)
-    ? recipe.months
-    : Array.isArray(recipe.seasons)
-      ? recipe.seasons
-      : []
-
-  const instructions = Array.isArray(recipe.instructions)
-    ? recipe.instructions
-    : Array.isArray(recipe.steps)
-      ? recipe.steps
-      : []
+  const categories = Array.isArray(recipe.categories) ? recipe.categories : []
+  const months = Array.isArray(recipe.months) ? recipe.months : []
+  const steps = Array.isArray(recipe.steps) ? recipe.steps : []
 
   const primaryCategory = recipe.category ?? categories.find((category) => category && !category.is_default)?.name ?? categories[0]?.name ?? null
 
-  const similarRecipes = Array.isArray(recipe.similar_recipes)
-    ? recipe.similar_recipes.map(normalizeRecipe)
-    : Array.isArray(recipe.similarRecipes)
-      ? recipe.similarRecipes.map(normalizeRecipe)
-      : []
+  const similarRecipes = Array.isArray(recipe.similarRecipes)
+    ? recipe.similarRecipes.map(normalizeRecipe)
+    : []
 
   return {
     ...recipe,
-    image: recipe.image ?? recipe.imageUrl ?? recipe.image_url ?? null,
-    imageUrl: recipe.imageUrl ?? recipe.image_url ?? null,
+    imageUrl: recipe.imageUrl ?? null,
     category: primaryCategory,
-    prepTime: recipe.prepTime ?? recipe.prep_time ?? null,
-    duration: recipe.duration ?? recipe.prepTime ?? recipe.prep_time ?? null,
-    sourceUrl: recipe.sourceUrl ?? recipe.source_url ?? null,
-    createdAt: recipe.createdAt ?? recipe.created_at ?? null,
+    prepTime: recipe.prepTime ?? null,
+    sourceUrl: recipe.sourceUrl ?? null,
+    createdAt: recipe.createdAt ?? null,
     type: recipe.type ?? null,
-    restrictedDetail: Boolean(recipe.restrictedDetail ?? recipe.restricted_detail),
+    restrictedDetail: Boolean(recipe.restrictedDetail),
     categories,
     months,
-    instructions,
-    steps: instructions,
+    steps,
     similarRecipes,
   }
 }
