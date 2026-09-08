@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'https://meal-organizer-back.onrender.com'
+const API_URL = import.meta.env.VITE_API_URL ?? 'https://meal-organizer-back.vercel.app'
 
 function normalizeRecipe(recipe) {
   if (!recipe) {

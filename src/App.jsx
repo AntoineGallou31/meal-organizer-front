@@ -7,7 +7,7 @@ import RecipeDetailPage from './pages/RecipeDetailPage'
 import RecipesPage from './pages/RecipesPage'
 import { useKeepAlive } from './hooks/useKeepAlive'
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'https://meal-organizer-back.onrender.com'
+const API_URL = import.meta.env.VITE_API_URL ?? 'https://meal-organizer-back.vercel.app'
 
 function AppLayout() {
   useKeepAlive(`${API_URL}/health`, 10)
