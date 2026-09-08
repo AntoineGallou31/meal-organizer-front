@@ -100,18 +100,7 @@ export default function RecipeDetailPage() {
     },
   })
 
-  const declareReliableMutation = useMutation({
-    mutationFn: () => api.updateRecipe(id, { confidence: 100 }),
-    onSuccess: (updatedRecipe) => {
-      queryClient.setQueryData(['recipe', id], updatedRecipe)
-      queryClient.invalidateQueries({ queryKey: ['recipes'] })
-    },
-  })
-
   const recipe = recipeQuery.data
-  const reliabilityScore = Number(recipe?.confidence)
-  const hasReliabilityScore = Number.isFinite(reliabilityScore)
-  const showReliabilityWarning = hasReliabilityScore && reliabilityScore < 40
   const ingredientCount = (recipe?.ingredients ?? []).length
   const stepCount = (recipe?.steps ?? []).length
   const showSourceOnlyDetail = Boolean(recipe && (ingredientCount === 0 || stepCount === 0))
@@ -195,65 +184,63 @@ export default function RecipeDetailPage() {
 
       {recipe ? (
         <div>
-          {showReliabilityWarning ? (
-            <Block className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900">
-              <div className="flex items-start gap-2 text-sm">
-                <AlertTriangle size={30} className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="font-semibold">Fiabilite de la recette: {Math.round(reliabilityScore)}/100</div>
-                  <p className="mt-1 text-amber-800">
-                    Attention: cette recette n&apos;est peut-etre pas totalement fiable. Verifiez les ingredients et les etapes avant de cuisiner.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {recipe.sourceUrl ? (
-                      <a
-                        href={recipe.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
-                      >
-                        Voir la recette originale
-                      </a>
-                    ) : null}
-                    <Button
-                      tonal
-                      small
-                      onClick={() => declareReliableMutation.mutate()}
-                      disabled={declareReliableMutation.isPending}
-                    >
-                      {declareReliableMutation.isPending ? 'Validation...' : 'Déclarer la recette fiable'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Block>
-          ) : null}
-
           {showSourceOnlyDetail ? (
-            <Block className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 mb-4">
-              <div className="flex items-start gap-2 text-sm">
-                <AlertTriangle size={30} className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="font-semibold">Détails manquants</div>
-                  <p className="mt-1 text-amber-800">
-                    Cette recette semble incomplète (ingrédients ou étapes manquants). Vérifiez la source avant utilisation.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {recipe.sourceUrl ? (
-                      <a
-                        href={recipe.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
-                      >
-                        Voir la recette originale
-                      </a>
-                    ) : null}
+            <>
+              <Block strong className="overflow-hidden rounded-2xl bg-white p-0 mb-6">
+                {recipe.imageUrl ? (
+                  <img src={recipe.imageUrl} alt={recipe.title} className="h-52 w-full object-cover" />
+                ) : (
+                  <div className="flex h-52 items-center justify-center bg-linear-to-br from-sage-200 to-terracotta-200 text-sm font-semibold text-sage-800">
+                    Image non disponible
+                  </div>
+                )}
+
+                <div className="px-4 py-4">
+                  <h1 className="text-xl font-semibold text-sage-900">{recipe.title}</h1>
+                </div>
+              </Block>
+
+              <Block className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 mb-4">
+                <div className="flex items-start gap-2 text-sm">
+                  <AlertTriangle size={30} className="mt-0.5 shrink-0" />
+                  <div>
+                    <div className="font-semibold">Recette incomplète</div>
+                    <p className="mt-1 text-amber-800">
+                      Les ingrédients et/ou la préparation n'ont pas pu être récupérés automatiquement.
+                    </p>
                   </div>
                 </div>
-              </div>
-            </Block>
-          ) : null}
+              </Block>
+
+              <Block className="space-y-2">
+                {recipe.sourceUrl ? (
+                  <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="block">
+                    <Button large className="w-full">
+                      Voir la recette complète sur le site source
+                    </Button>
+                  </a>
+                ) : null}
+
+                <Button
+                  large
+                  tonal
+                  className="w-full text-red-700"
+                  disabled={deleteRecipeMutation.isPending}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Trash2 size={16} /> Supprimer
+                  </span>
+                </Button>
+              </Block>
+
+              {deleteRecipeMutation.isError ? (
+                <List inset strong>
+                  <ListItem title="Impossible de supprimer la recette" footer={deleteRecipeMutation.error?.message} />
+                </List>
+              ) : null}
+            </>
+          ) : (
             <>
               <Block strong className="overflow-hidden rounded-2xl bg-white p-0 mb-6">
                 {recipe.imageUrl ? (
@@ -394,20 +381,6 @@ export default function RecipeDetailPage() {
                     <Trash2 size={16} /> Supprimer
                   </span>
                 </Button>
-
-                {showReliabilityWarning ? (
-                  <div className="pt-2">
-                    <Button
-                      large
-                      className="w-full"
-                      tonal
-                      onClick={() => declareReliableMutation.mutate()}
-                      disabled={declareReliableMutation.isPending}
-                    >
-                      {declareReliableMutation.isPending ? 'Validation...' : 'Valider la recette (fiable)'}
-                    </Button>
-                  </div>
-                ) : null}
               </Block>
 
               {assignMealMutation.isError ? (
@@ -437,6 +410,7 @@ export default function RecipeDetailPage() {
                 </>
               ) : null}
             </>
+          )}
         </div>
       ) : null}
 

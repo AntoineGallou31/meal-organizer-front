@@ -79,7 +79,6 @@ function formToPayload(formData, { categories = [], selectedCategoryIds = [] } =
     category: primaryCategory?.name ?? null,
     categories: primaryCategory ? [primaryCategory.name] : [],
     months: [],
-    confidence: null,
   }
 }
 

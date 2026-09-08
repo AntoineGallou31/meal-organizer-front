@@ -24,8 +24,6 @@ function formatMissingFieldLabel(field) {
       return 'Ingrédients'
     case 'steps':
       return 'Préparation'
-    case 'content':
-      return 'Cohérence globale'
     default:
       return field
   }
@@ -33,85 +31,56 @@ function formatMissingFieldLabel(field) {
 
 export default function ImportRecipePage() {
   const [url, setUrl] = useState('')
-  const [titleVerificationPrompt, setTitleVerificationPrompt] = useState(null)
+  const [importBlocked, setImportBlocked] = useState(null)
+  const [importIssue, setImportIssue] = useState(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const importMutation = useMutation({
-    mutationFn: ({ importUrl, forceImportMode = null }) =>
-      api.importRecipe(importUrl, { forceImportMode }),
+    mutationFn: ({ importUrl, forceImport = false }) =>
+      api.importRecipe(importUrl, { forceImport }),
     onSuccess: (recipe) => {
-      setTitleVerificationPrompt(null)
+      setImportBlocked(null)
+      setImportIssue(null)
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      if (recipe?.restrictedDetail && recipe?.sourceUrl) {
-        window.location.assign(recipe.sourceUrl)
-        return
-      }
       navigate(`/recipes/${recipe.id}`)
     },
     onError: (error) => {
-      if (error?.status === 422 && (
-        error?.details?.code === 'TITLE_NEEDS_VERIFICATION' ||
-        error?.details?.code === 'IMPORT_VALIDATION_FAILED'
-      )) {
-        setTitleVerificationPrompt(error.details)
+      if (error?.status === 422 && error?.details?.code === 'IMPORT_BLOCKED') {
+        setImportBlocked(error.details)
+        return
+      }
+      if (error?.status === 422 && error?.details?.code === 'IMPORT_VALIDATION_FAILED') {
+        setImportIssue(error.details)
       }
     },
   })
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    setTitleVerificationPrompt(null)
+    setImportBlocked(null)
+    setImportIssue(null)
     importMutation.mutate({ importUrl: url })
   }
 
-  const handleConfirmContentlessImport = () => {
-    if (!titleVerificationPrompt) return
-    const importUrl =
-      titleVerificationPrompt?.scrapedContent?.sourceUrl ||
-      titleVerificationPrompt?.recipePreview?.sourceUrl ||
-      url
+  const handleForceImport = () => {
+    if (!importIssue) return
+    const importUrl = importIssue?.recipePreview?.sourceUrl || url
     if (!importUrl) return
-    importMutation.mutate({
-      importUrl,
-      forceImportMode: 'contentless',
-    })
+    importMutation.mutate({ importUrl, forceImport: true })
   }
 
-  const handleConfirmForcedImport = () => {
-    if (!titleVerificationPrompt) return
-    const importUrl =
-      titleVerificationPrompt?.scrapedContent?.sourceUrl ||
-      titleVerificationPrompt?.recipePreview?.sourceUrl ||
-      url
-    if (!importUrl) return
-    importMutation.mutate({
-      importUrl,
-      forceImportMode: 'incomplete',
-    })
+  const handleCancelImportIssue = () => {
+    setImportIssue(null)
   }
 
-  const handleCancelUnverifiedTitleImport = () => {
-    setTitleVerificationPrompt(null)
+  const handleCancelImportBlocked = () => {
+    setImportBlocked(null)
   }
 
-  const preview = titleVerificationPrompt?.recipePreview ?? null
-  const missingFields = titleVerificationPrompt?.missingFields ?? []
-  const matchedKeywords = titleVerificationPrompt?.titleKeywordsMatched ?? []
-  const fieldErrors = titleVerificationPrompt?.fieldErrors ?? []
-  const scrapedContent = titleVerificationPrompt?.scrapedContent ?? null
-  const importValidation = titleVerificationPrompt?.importValidation ?? null
-  const validationType = titleVerificationPrompt?.validationType ?? null
-  const canForceIncomplete = Boolean(titleVerificationPrompt?.canForceIncomplete)
-  const showImportReviewPrompt =
-    titleVerificationPrompt?.code === 'IMPORT_VALIDATION_FAILED'
-  const isHardValidation = validationType === 'hard'
-  const reviewTitle = isHardValidation
-    ? 'La récupération de cette recette présente des problèmes'
-    : 'L\'importation de cette recette présente des incohérences'
-  const reviewDescription = isHardValidation
-    ? 'Le titre ou la photo semble incorrect(e). Vous pouvez annuler l\'import, ou importer quand même la recette.'
-    : 'Les ingrédients ou la préparation semblent incohérents. La recette peut être importée, mais sans ses ingrédients ni sa préparation.'
+  const preview = importIssue?.recipePreview ?? null
+  const missingFields = importIssue?.missingFields ?? []
+  const blockedMissingFields = importBlocked?.missingFields ?? []
 
   return (
     <Page>
@@ -125,23 +94,14 @@ export default function ImportRecipePage() {
       />
 
       <Block className="space-y-3 pb-24">
-        <Block className="rounded-2xl bg-sage-50 p-4 ring-1 ring-sage-100">
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-sage-900">Choisissez une méthode d'import</p>
-            <p className="text-sm text-sage-700">
-              Importez une recette en collant son URL.
-            </p>
-          </div>
+        <Block className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-cream-200">
+          <p className="text-sm font-semibold text-sage-900">Import par URL</p>
+          <p className="mt-1 text-sm text-sage-700">
+            Collez l'adresse de la recette complète. Le lien peut pointer vers un site de cuisine, un blog ou une page article contenant une vraie recette.
+          </p>
         </Block>
 
         <form onSubmit={handleSubmit}>
-          <Block className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-cream-200">
-            <p className="text-sm font-semibold text-sage-900">Import par URL</p>
-            <p className="mt-1 text-sm text-sage-700">
-              Collez l'adresse de la recette complète. Le lien peut pointer vers un site de cuisine, un blog ou une page article contenant une vraie recette.
-            </p>
-          </Block>
-
           <List strongIos outlineIos>
             <ListInput
               type="url"
@@ -163,11 +123,30 @@ export default function ImportRecipePage() {
           </div>
         </form>
 
-        {showImportReviewPrompt ? (
+        {importBlocked ? (
+          <Block className="rounded-2xl bg-red-50 p-4 ring-1 ring-red-200">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-red-900">Importation impossible</p>
+              <p className="text-sm text-red-800">
+                Le titre et la photo sont indispensables pour importer une recette, et n'ont pas pu être récupérés sur cette page ({blockedMissingFields.map(formatMissingFieldLabel).join(', ')}). Essayez avec une autre URL.
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <Button type="button" onClick={handleCancelImportBlocked} className="w-full">
+                Fermer
+              </Button>
+            </div>
+          </Block>
+        ) : null}
+
+        {importIssue ? (
           <Block className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-amber-900">{reviewTitle}</p>
-              <p className="text-sm text-amber-800">{reviewDescription}</p>
+              <p className="text-sm font-semibold text-amber-900">Certaines informations n'ont pas été trouvées</p>
+              <p className="text-sm text-amber-800">
+                Les ingrédients ou les étapes n'ont pas pu être récupérés sur cette page. Vous pouvez annuler l'import, ou importer quand même la recette : sa fiche renverra alors vers la page source au lieu d'afficher le contenu.
+              </p>
             </div>
 
             <div className="mt-4 grid gap-4 md:grid-cols-[120px_1fr]">
@@ -186,103 +165,32 @@ export default function ImportRecipePage() {
               <List strongIos outlineIos>
                 <ListItem title="Titre" after={preview?.title || 'Titre introuvable'} />
                 <ListItem
-                  title="Source"
-                  after={
-                    preview?.sourceUrl ? (
-                      <a
-                        href={preview.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="max-w-48 truncate text-sage-700 underline decoration-sage-400 underline-offset-2"
-                      >
-                        Ouvrir
-                      </a>
-                    ) : (
-                      'Source introuvable'
-                    )
-                  }
-                />
-                <ListItem title="Mots reconnus" after={matchedKeywords.length ? matchedKeywords.join(', ') : 'Aucun'} />
-                <ListItem
-                  title="Champs concernés"
+                  title="Champs manquants"
                   after={missingFields.length ? missingFields.map(formatMissingFieldLabel).join(', ') : 'Aucun'}
-                />
-                <ListItem
-                  title="Score cohérence"
-                  after={importValidation?.score ?? '-'}
                 />
               </List>
             </div>
 
-            {fieldErrors.length > 0 ? (
-              <List inset strong className="mt-3">
-                {fieldErrors.map((fieldError, index) => (
-                  <ListItem
-                    key={`${fieldError.field}-${fieldError.code}-${index}`}
-                    title={`${formatMissingFieldLabel(fieldError.field)}`}
-                    footer={fieldError.message}
-                  />
-                ))}
-              </List>
-            ) : null}
-
-            {importValidation?.reasons?.length ? (
-              <List inset strong className="mt-3">
-                <ListItem
-                  title="Raisons de non cohérence"
-                  text={importValidation.reasons.join('\n')}
-                />
-              </List>
-            ) : null}
-
-            {scrapedContent ? (
-              <List inset strong className="mt-3">
-                <ListItem
-                  title="Scraping - ingrédients"
-                  text={scrapedContent.ingredients?.length ? scrapedContent.ingredients.join('\n') : 'Aucun ingrédient extrait'}
-                />
-                <ListItem
-                  title="Scraping - préparation"
-                  text={scrapedContent.steps?.length ? scrapedContent.steps.join('\n') : 'Aucune étape extraite'}
-                />
-              </List>
-            ) : null}
-
             <div className="mt-4 grid gap-2 md:grid-cols-2">
-              <Button tonal type="button" onClick={handleCancelUnverifiedTitleImport} disabled={importMutation.isPending}>
+              <Button tonal type="button" onClick={handleCancelImportIssue} disabled={importMutation.isPending}>
                 Annuler l'import
               </Button>
-
-              {canForceIncomplete ? (
-                <Button type="button" onClick={handleConfirmForcedImport} disabled={importMutation.isPending}>
-                  Importer quand même
-                </Button>
-              ) : null}
-
-              {validationType === 'content' ? (
-                <Button type="button" onClick={handleConfirmContentlessImport} disabled={importMutation.isPending}>
-                  Importer sans ingrédients ni préparation
-                </Button>
-              ) : null}
-
-              {!canForceIncomplete && validationType !== 'content' ? (
-                <Button type="button" onClick={handleCancelUnverifiedTitleImport} disabled={importMutation.isPending} className="w-full">
-                  Fermer
-                </Button>
-              ) : null}
+              <Button type="button" onClick={handleForceImport} disabled={importMutation.isPending}>
+                Importer quand même
+              </Button>
             </div>
           </Block>
         ) : null}
 
         {importMutation.isError &&
-        importMutation.error?.details?.code !== 'TITLE_NEEDS_VERIFICATION' &&
+        importMutation.error?.details?.code !== 'IMPORT_BLOCKED' &&
         importMutation.error?.details?.code !== 'IMPORT_VALIDATION_FAILED' ? (
           <List inset strong>
             <ListItem title="Impossible d'importer la recette" footer={importMutation.error.message} />
           </List>
         ) : null}
 
-        {!titleVerificationPrompt ? (
+        {!importBlocked && !importIssue ? (
           <Block className="flex items-center gap-2 rounded-2xl bg-sage-50 p-4 text-sm text-sage-700 ring-1 ring-sage-100">
             <Preloader />
             <span>Collez une URL pour commencer l'import.</span>
