@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, LoaderCircle, Upload, X } from 'lucide-react'
+import { ChevronLeft, LoaderCircle, Upload } from 'lucide-react'
 import {
   Block,
   BlockTitle,
   Button,
-  Chip,
   Fab,
   List,
   ListInput,
@@ -136,18 +135,16 @@ function RecipeFormFields({
     setSelectedCategoryIds(event.target.value ? [event.target.value] : [])
   }
 
-  const handleMonthsChange = (event) => {
-    const values = Array.from(event.target.selectedOptions).map((option) => option.value)
-    setSelectedMonths(values)
-  }
-
-  const removeMonth = (month) => {
-    setSelectedMonths((prev) => prev.filter((item) => item !== month))
+  const toggleMonth = (monthValue) => {
+    setSelectedMonths((prev) =>
+      prev.includes(monthValue)
+        ? prev.filter((month) => month !== monthValue)
+        : [...prev, monthValue],
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="pb-24">
-      <BlockTitle>Informations</BlockTitle>
+    <form onSubmit={handleSubmit}>
       <List>
         <ListInput type="text" label="Titre" name="title" required defaultValue={defaultValues.title} />
 
@@ -229,64 +226,34 @@ function RecipeFormFields({
         </List>
       ) : null}
 
-      {!isEdit && selectedCategoryIds.length === 0 ? (
-        <List inset strong>
-          <ListItem title="Aucune catégorie sélectionnée" footer="Le backend tentera une détection automatique." />
-        </List>
-      ) : null}
-
       <BlockTitle>Mois de disponibilité (optionnel)</BlockTitle>
-      <List>
-        <ListInput
-          type="select"
-          label="Mois (sélection multiple)"
-          multiple
-          value={selectedMonths}
-          onChange={handleMonthsChange}
-          inputClassName="min-h-40"
-        >
-          {MONTHS.map((month) => (
-            <option key={month.id} value={month.value}>
+      <div className="grid grid-cols-3 gap-2 px-4 pb-2">
+        {MONTHS.map((month) => {
+          const checked = selectedMonths.includes(month.value)
+
+          return (
+            <button
+              key={month.id}
+              type="button"
+              onClick={() => toggleMonth(month.value)}
+              aria-pressed={checked}
+              className={[
+                'rounded-2xl border px-3 py-3 text-sm font-medium transition',
+                checked
+                  ? 'border-blue-400 bg-blue-100 text-blue-800'
+                  : 'border-cream-200 bg-white text-sage-700 active:bg-cream-100',
+              ].join(' ')}
+            >
               {month.label}
-            </option>
-          ))}
-        </ListInput>
-      </List>
+            </button>
+          )
+        })}
+      </div>
 
       {!isEdit && selectedMonths.length === 0 ? (
         <List inset strong>
           <ListItem title="Aucun mois sélectionné" footer="Le backend tentera une détection automatique à partir des ingrédients." />
         </List>
-      ) : null}
-
-      {selectedMonths.length > 0 ? (
-        <div className="space-y-3 px-4 pt-2">
-          <div className="flex flex-wrap gap-2">
-            {selectedMonths.map((month) => {
-              const monthData = MONTHS.find((item) => item.value === month)
-              const label = monthData ? monthData.label : month
-
-              return (
-                <Chip
-                  key={month}
-                  className="bg-blue-100 text-blue-800"
-                  media={
-                    <button
-                      type="button"
-                      onClick={() => removeMonth(month)}
-                      className="inline-flex h-4 w-4 items-center justify-center text-blue-800"
-                      aria-label={`Retirer ${label}`}
-                    >
-                      <X size={12} />
-                    </button>
-                  }
-                >
-                  {label}
-                </Chip>
-              )
-            })}
-          </div>
-        </div>
       ) : null}
 
       <Block className="grid grid-cols-2 gap-2">
