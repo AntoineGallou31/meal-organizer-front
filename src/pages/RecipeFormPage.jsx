@@ -89,22 +89,9 @@ function RecipeFormFields({
     isEdit ? (recipe?.categories ?? []).map((category) => category.id) : [],
   )
   const [categoryError, setCategoryError] = useState('')
-  const [newCategoryName, setNewCategoryName] = useState('')
   const [selectedMonths, setSelectedMonths] = useState(() =>
     isEdit ? (recipe?.months ?? []).filter((month) => typeof month === 'string') : [],
   )
-
-  const createCategoryMutation = useMutation({
-    mutationFn: async (name) => {
-      const result = await api.createCategory({ name })
-      return result
-    },
-    onSuccess: (newCategory) => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      setSelectedCategoryIds((prev) => [...prev, newCategory.id])
-      setNewCategoryName('')
-    },
-  })
 
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
@@ -113,13 +100,11 @@ function RecipeFormFields({
         await api.setRecipeCategories(id, selectedCategoryIds)
         return api.getRecipeById(updatedRecipe.id)
       }
-      if (selectedCategoryIds.length > 0) {
-        return api.createRecipe({
-          ...payload,
-          categoryIds: selectedCategoryIds,
-        })
-      }
-      return api.createRecipe(payload)
+      return api.createRecipe(
+        selectedCategoryIds.length > 0
+          ? { ...payload, categoryIds: selectedCategoryIds }
+          : payload,
+      )
     },
     onSuccess: (savedRecipe) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
@@ -139,9 +124,6 @@ function RecipeFormFields({
       return
     }
     setCategoryError('')
-    if (createCategoryMutation.isPending) {
-      return
-    }
     const payload = formToPayload(new FormData(event.currentTarget), {
       categories,
       selectedCategoryIds,
@@ -149,27 +131,14 @@ function RecipeFormFields({
     saveMutation.mutate({ ...payload, months: selectedMonths })
   }
 
-  const toggleCategory = (categoryId) => {
+  const handleCategoryChange = (event) => {
     setCategoryError('')
-    setSelectedCategoryIds((prev) =>
-      prev.includes(categoryId)
-        ? prev.filter((selectedId) => selectedId !== categoryId)
-        : [...prev, categoryId],
-    )
+    setSelectedCategoryIds(event.target.value ? [event.target.value] : [])
   }
 
-  const addNewCategory = () => {
-    const trimmed = newCategoryName.trim()
-    if (!trimmed) return
-    createCategoryMutation.mutate(trimmed)
-  }
-
-  const toggleMonth = (monthValue) => {
-    setSelectedMonths((prev) =>
-      prev.includes(monthValue)
-        ? prev.filter((month) => month !== monthValue)
-        : [...prev, monthValue],
-    )
+  const handleMonthsChange = (event) => {
+    const values = Array.from(event.target.selectedOptions).map((option) => option.value)
+    setSelectedMonths(values)
   }
 
   const removeMonth = (month) => {
@@ -237,68 +206,26 @@ function RecipeFormFields({
       ) : null}
 
       {!categoriesQuery.isLoading && !categoriesQuery.isError ? (
-        <>
-          <List  >
-            {categories.map((category) => {
-              const checked = selectedCategoryIds.includes(category.id)
-
-              return (
-                <ListItem
-                  key={category.id}
-                  title={category.name}
-                  className={checked ? 'bg-sage-50' : ''}
-                  onClick={() => toggleCategory(category.id)}
-                  after={
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={() => toggleCategory(category.id)}
-                    />
-                  }
-                />
-              )
-            })}
-
-            <ListInput
-              type="text"
-              label="Ajouter une catégorie personnalisée"
-              value={newCategoryName}
-              onChange={(event) => setNewCategoryName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  addNewCategory()
-                }
-              }}
-              placeholder="Ex: Plats sans gluten"
-              disabled={createCategoryMutation.isPending}
-            />
-          </List>
-
-          <div className="px-4 pt-2">
-            <Button
-              tonal
-              type="button"
-              onClick={addNewCategory}
-              disabled={createCategoryMutation.isPending || !newCategoryName.trim()}
-              className="w-full"
-            >
-              {createCategoryMutation.isPending ? <LoaderCircle size={16} className="animate-spin" /> : 'Ajouter la catégorie'}
-            </Button>
-          </div>
-        </>
+        <List>
+          <ListInput
+            type="select"
+            label="Catégorie"
+            value={selectedCategoryIds[0] ?? ''}
+            onChange={handleCategoryChange}
+          >
+            <option value="">Sélectionner une catégorie</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </ListInput>
+        </List>
       ) : null}
 
       {categoryError ? (
         <List inset strong>
           <ListItem className="text-red-700" title={categoryError} />
-        </List>
-      ) : null}
-
-      {createCategoryMutation.isError ? (
-        <List inset strong>
-          <ListItem title="Impossible de créer la catégorie" footer={createCategoryMutation.error?.message} />
         </List>
       ) : null}
 
@@ -309,28 +236,28 @@ function RecipeFormFields({
       ) : null}
 
       <BlockTitle>Mois de disponibilité (optionnel)</BlockTitle>
-      <List  >
-        {MONTHS.map((month) => {
-          const checked = selectedMonths.includes(month.value)
-
-          return (
-            <ListItem
-              key={month.id}
-              title={month.label}
-                className={checked ? 'bg-blue-50' : ''}
-              onClick={() => toggleMonth(month.value)}
-              after={
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onClick={(event) => event.stopPropagation()}
-                  onChange={() => toggleMonth(month.value)}
-                />
-              }
-            />
-          )
-        })}
+      <List>
+        <ListInput
+          type="select"
+          label="Mois (sélection multiple)"
+          multiple
+          value={selectedMonths}
+          onChange={handleMonthsChange}
+          inputClassName="min-h-40"
+        >
+          {MONTHS.map((month) => (
+            <option key={month.id} value={month.value}>
+              {month.label}
+            </option>
+          ))}
+        </ListInput>
       </List>
+
+      {!isEdit && selectedMonths.length === 0 ? (
+        <List inset strong>
+          <ListItem title="Aucun mois sélectionné" footer="Le backend tentera une détection automatique à partir des ingrédients." />
+        </List>
+      ) : null}
 
       {selectedMonths.length > 0 ? (
         <div className="space-y-3 px-4 pt-2">
