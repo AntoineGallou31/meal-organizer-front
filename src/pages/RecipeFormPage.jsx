@@ -410,7 +410,7 @@ export default function RecipeFormPage() {
           </Button>
         }
         right={
-            <Upload size={30} onClick={() => navigate('/recipes/import')}/>
+            <Upload size={20} onClick={() => navigate('/recipes/import')}/>
         }
       />
 
