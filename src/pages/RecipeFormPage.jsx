@@ -145,6 +145,7 @@ function RecipeFormFields({
 
   return (
     <form onSubmit={handleSubmit}>
+      <BlockTitle>Informations</BlockTitle>
       <List>
         <ListInput type="text" label="Titre" name="title" required defaultValue={defaultValues.title} />
 
@@ -252,7 +253,7 @@ function RecipeFormFields({
 
       {!isEdit && selectedMonths.length === 0 ? (
         <List inset strong>
-          <ListItem title="Aucun mois sélectionné" footer="Le backend tentera une détection automatique à partir des ingrédients." />
+          <ListItem title="Aucun mois sélectionné" />
         </List>
       ) : null}
 
