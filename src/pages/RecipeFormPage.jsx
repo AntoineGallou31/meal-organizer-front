@@ -251,12 +251,6 @@ function RecipeFormFields({
         })}
       </div>
 
-      {!isEdit && selectedMonths.length === 0 ? (
-        <List inset strong>
-          <ListItem title="Aucun mois sélectionné" />
-        </List>
-      ) : null}
-
       <Block className="grid grid-cols-2 gap-2">
         <Button tonal type="button" large disabled={saveMutation.isPending} onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')}>
           Annuler
