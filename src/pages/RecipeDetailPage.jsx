@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ChevronLeft, Clock3, Flame, Pencil, Trash2, Users, MoreVertical } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Clock3, Flame, Leaf, Pencil, Trash2, Users, MoreVertical } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import {
   Block,
@@ -19,6 +19,7 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { getUpcomingDays } from '../lib/week'
+import { MONTHS } from '../lib/seasonality'
 
 function parseQuantityToken(token) {
   const trimmed = token.trim()
@@ -95,6 +96,7 @@ export default function RecipeDetailPage() {
     mutationFn: api.deleteRecipe,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      queryClient.invalidateQueries({ queryKey: ['recipe-suggestions'] })
       queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
       navigate('/recipes')
     },
@@ -297,6 +299,33 @@ export default function RecipeDetailPage() {
                 ) : null}
                 </div>
               </Block>
+
+              {(recipe.months ?? []).length > 0 ? (
+                <>
+                  <BlockTitle>Saisonnalité</BlockTitle>
+                  <Block className="rounded-2xl bg-white mb-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {MONTHS.map((month) => {
+                        const isIncluded = recipe.months.includes(month.value)
+                        const isCurrent = month.number === new Date().getMonth() + 1
+                        return (
+                          <span
+                            key={month.id}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                              isIncluded
+                                ? 'bg-sage-700 text-white'
+                                : 'bg-sage-50 text-sage-400'
+                            } ${isCurrent ? 'ring-2 ring-terracotta-400 ring-offset-1' : ''}`}
+                          >
+                            {isIncluded ? <Leaf size={11} /> : null}
+                            {month.label}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </Block>
+                </>
+              ) : null}
 
               <BlockTitle>Ingrédients</BlockTitle>
               <List>

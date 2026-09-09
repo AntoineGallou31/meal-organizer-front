@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Filter, Flame, Leaf, Plus, Sparkles, X } from 'lucide-react'
+import { ChevronLeft, Filter, Leaf, Plus, Sparkles, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
@@ -41,12 +41,6 @@ function RecipeTile({ recipe, selectionMode, onPick, disabled, showSeasonBadge }
       <div className="px-3 py-2 text-sm font-medium text-gray-900">
         <div className="flex items-center justify-between gap-2">
           <span>{recipe.title}</span>
-          {recipe.cookCount > 0 ? (
-            <span className="flex shrink-0 items-center gap-0.5 text-xs font-normal text-gray-500">
-              <Flame size={12} />
-              {recipe.cookCount}
-            </span>
-          ) : null}
         </div>
       </div>
     </>
@@ -97,10 +91,10 @@ export default function RecipesPage() {
   const selectedCategoryId = searchParams.get('category') ?? ''
   const selectedMonth = searchParams.get('month') ?? ''
   const ingredient = searchParams.get('ingredient') ?? ''
-  const prepMax = searchParams.get('prepMax') ?? ''
   const sort = searchParams.get('sort') ?? 'oldest'
   const [showFilters, setShowFilters] = useState(false)
   const [columnCount, setColumnCount] = useState(2)
+  const [isScrolled, setIsScrolled] = useState(false)
   const loadMoreRef = useRef(null)
   const selectionMode = searchParams.get('mode') === 'select'
   const selectedDate = searchParams.get('date') ?? ''
@@ -126,7 +120,6 @@ export default function RecipesPage() {
   const setSelectedCategoryId = (value) => updateSearchParam('category', value)
   const setSelectedMonth = (value) => updateSearchParam('month', value)
   const setIngredient = (value) => updateSearchParam('ingredient', value)
-  const setPrepMax = (value) => updateSearchParam('prepMax', value)
   const setSort = (value) => updateSearchParam('sort', value)
 
   const categoriesQuery = useQuery({
@@ -140,10 +133,9 @@ export default function RecipesPage() {
       categoryId: selectedCategoryId,
       ingredient,
       month: selectedMonth,
-      prepMax,
       sort,
     }),
-    [search, selectedCategoryId, ingredient, selectedMonth, prepMax, sort],
+    [search, selectedCategoryId, ingredient, selectedMonth, sort],
   )
 
   const debouncedRecipeFilters = useDebouncedValue(recipeFilters, 250)
@@ -153,7 +145,6 @@ export default function RecipesPage() {
     selectedCategoryId !== '' ||
     selectedMonth !== '' ||
     ingredient.trim() !== '' ||
-    prepMax.trim() !== '' ||
     sort !== 'oldest'
 
   const suggestionsQuery = useInfiniteQuery({
@@ -187,7 +178,10 @@ export default function RecipesPage() {
 
   const activeQuery = hasActiveFilters ? recipesQuery : suggestionsQuery
   const filteredRecipes = activeQuery.data?.pages.flatMap((page) => page.items ?? []) ?? []
-  const categories = categoriesQuery.data ?? []
+  const categories = useMemo(
+    () => [...(categoriesQuery.data ?? [])].sort((a, b) => (b.recipe_count ?? 0) - (a.recipe_count ?? 0)),
+    [categoriesQuery.data],
+  )
   const hasNextPage = activeQuery.hasNextPage
   const isFetchingNextPage = activeQuery.isFetchingNextPage
   const fetchNextPage = activeQuery.fetchNextPage
@@ -287,6 +281,13 @@ export default function RecipesPage() {
     return () => mediaQuery.removeListener(updateColumns)
   }, [])
 
+  useEffect(() => {
+    const updateScrolled = () => setIsScrolled(window.scrollY > 0)
+    updateScrolled()
+    window.addEventListener('scroll', updateScrolled, { passive: true })
+    return () => window.removeEventListener('scroll', updateScrolled)
+  }, [])
+
   return (
     <Page>
       <Navbar
@@ -309,52 +310,58 @@ export default function RecipesPage() {
         }
       />
 
-      <div className="flex items-center gap-2 py-4 pt-1">
-        <Searchbar
-          placeholder="Rechercher une recette"
-          value={search}
-          onChange={(valueOrEvent) =>
-            setSearch(
-              typeof valueOrEvent === 'string' ? valueOrEvent : (valueOrEvent?.target?.value ?? ''),
-            )
-          }
-          disableButton={!search}
-          onDisableButtonClick={() => setSearch('')}
-        />
-        <Fab
-          tonal={!hasActiveFilters}
-          onClick={() => setShowFilters(true)}
-          title="Filtres"
-          className="rounded-full"
-        >
-          <Filter size={20} />
-        </Fab>
-      </div>
-
-      <div className="pb-3">
-        <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">
-          <Chip
-            className={`shrink-0 ${
-              selectedCategoryId === '' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'
-            }`}
-            onClick={() => setSelectedCategoryId('')}
+      <div
+        className={`sticky top-[61px] z-10 -mx-4 px-4 transition-colors sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 ${
+          isScrolled ? 'bg-[rgba(255,255,255,0.88)] backdrop-blur-xl' : 'bg-transparent'
+        }`}
+      >
+        <div className="flex items-center gap-2 py-4 pt-1">
+          <Searchbar
+            placeholder="Rechercher une recette"
+            value={search}
+            onChange={(valueOrEvent) =>
+              setSearch(
+                typeof valueOrEvent === 'string' ? valueOrEvent : (valueOrEvent?.target?.value ?? ''),
+              )
+            }
+            disableButton={!search}
+            onDisableButtonClick={() => setSearch('')}
+          />
+          <Fab
+            tonal={!hasActiveFilters}
+            onClick={() => setShowFilters(true)}
+            title="Filtres"
+            className="rounded-full"
           >
-            Toutes
-          </Chip>
-          {categories.map((category, index) => {
-            const isSelected = selectedCategoryId === category.id
-            return (
-              <Chip
-                key={category.id}
-                onClick={() => setSelectedCategoryId(category.id)}
-                className={`shrink-0 ${
-                  isSelected ? 'bg-gray-900 text-white' : CHIP_COLORS[index % CHIP_COLORS.length]
-                }`}
-              >
-                {category.name}
-              </Chip>
-            )
-          })}
+            <Filter size={20} />
+          </Fab>
+        </div>
+
+        <div className="pb-3">
+          <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">
+            <Chip
+              className={`shrink-0 ${
+                selectedCategoryId === '' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'
+              }`}
+              onClick={() => setSelectedCategoryId('')}
+            >
+              Toutes
+            </Chip>
+            {categories.map((category, index) => {
+              const isSelected = selectedCategoryId === category.id
+              return (
+                <Chip
+                  key={category.id}
+                  onClick={() => setSelectedCategoryId(category.id)}
+                  className={`shrink-0 ${
+                    isSelected ? 'bg-gray-900 text-white' : CHIP_COLORS[index % CHIP_COLORS.length]
+                  }`}
+                >
+                  {category.name}
+                </Chip>
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -451,15 +458,6 @@ export default function RecipesPage() {
               value={ingredient}
               placeholder="Ex: tomate"
               onChange={(event) => setIngredient(event.target.value)}
-            />
-
-            <ListInput
-              label="Temps max (min)"
-              type="number"
-              min="1"
-              value={prepMax}
-              placeholder="Ex: 30"
-              onChange={(event) => setPrepMax(event.target.value)}
             />
           </List>
 

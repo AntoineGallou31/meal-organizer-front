@@ -107,10 +107,11 @@ function RecipeFormFields({
     },
     onSuccess: (savedRecipe) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      queryClient.invalidateQueries({ queryKey: ['recipe-suggestions'] })
       if (isEdit) {
         queryClient.invalidateQueries({ queryKey: ['recipe', id] })
       }
-      navigate(`/recipes/${savedRecipe.id}`)
+      navigate(`/recipes/${savedRecipe.id}`, { replace: true })
     },
   })
 
@@ -173,7 +174,6 @@ function RecipeFormFields({
           type="textarea"
           label="Ingrédients (1 ligne = 1 ingrédient)"
           name="ingredientsText"
-          required
           defaultValue={defaultValues.ingredientsText}
           inputClassName="min-h-28"
         />
@@ -182,7 +182,6 @@ function RecipeFormFields({
           type="textarea"
           label="Étapes (1 ligne = 1 étape)"
           name="stepsText"
-          required
           defaultValue={defaultValues.stepsText}
           inputClassName="min-h-36"
         />
