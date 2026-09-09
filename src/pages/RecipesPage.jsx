@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Filter, Flame, Plus, X } from 'lucide-react'
+import { ChevronLeft, Filter, Flame, Leaf, Plus, Sparkles, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
@@ -17,6 +17,7 @@ import {
 } from '../components/ui'
 import { api } from '../lib/api'
 import { MONTHS } from '../lib/seasonality'
+import { getWeekKey } from '../lib/week'
 
 function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
   const classes = 'mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl bg-white text-left'
@@ -56,6 +57,67 @@ function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
     <button type="button" onClick={() => onPick(recipe)} className={classes}>
       {content}
     </button>
+  )
+}
+
+function SuggestionCard({ recipe, onPick }) {
+  const reasons = recipe.suggestionReasons ?? {}
+  const badge = reasons.neverCooked
+    ? { icon: Sparkles, label: 'Jamais faite' }
+    : reasons.inSeason
+      ? { icon: Leaf, label: 'De saison' }
+      : null
+
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(recipe)}
+      className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white text-left shadow-sm"
+    >
+      {recipe.imageUrl ? (
+        <img src={recipe.imageUrl} alt={recipe.title} className="h-24 w-full object-cover" loading="lazy" />
+      ) : (
+        <div className="flex h-24 items-center justify-center bg-gray-100 text-center text-xs text-gray-500">
+          Image non disponible
+        </div>
+      )}
+      <div className="px-2.5 py-2">
+        <div className="line-clamp-2 text-xs font-medium text-gray-900">{recipe.title}</div>
+        {badge ? (
+          <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-sage-700">
+            <badge.icon size={11} />
+            {badge.label}
+          </div>
+        ) : null}
+      </div>
+    </button>
+  )
+}
+
+function SuggestionsSection({ title, recipes, isLoading, onPick }) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 pb-4 text-sm text-gray-600">
+        <Preloader />
+        <span>Recherche de suggestions...</span>
+      </div>
+    )
+  }
+
+  if (!recipes.length) return null
+
+  return (
+    <div className="pb-4">
+      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-sage-900">
+        <Sparkles size={16} />
+        {title}
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        {recipes.map((recipe) => (
+          <SuggestionCard key={recipe.id} recipe={recipe} onPick={onPick} />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -140,6 +202,23 @@ export default function RecipesPage() {
 
   const debouncedRecipeFilters = useDebouncedValue(recipeFilters, 250)
 
+  const hasActiveFilters =
+    search.trim() !== '' ||
+    selectedCategoryId !== '' ||
+    selectedMonth !== '' ||
+    ingredient.trim() !== '' ||
+    prepMax.trim() !== '' ||
+    sort !== 'oldest'
+
+  const currentWeekKey = useMemo(() => getWeekKey(new Date()), [])
+
+  const suggestionsQuery = useQuery({
+    queryKey: ['recipe-suggestions', currentWeekKey],
+    queryFn: () => api.getRecipeSuggestions({ week: currentWeekKey, limit: 7 }),
+    enabled: !hasActiveFilters,
+    staleTime: 60 * 60 * 1000,
+  })
+
   const recipesQuery = useInfiniteQuery({
     queryKey: ['recipes', debouncedRecipeFilters],
     initialPageParam: 1,
@@ -173,14 +252,6 @@ export default function RecipesPage() {
     })
     return columns
   }, [filteredRecipes, columnCount])
-
-  const hasActiveFilters =
-    search.trim() !== '' ||
-    selectedCategoryId !== '' ||
-    selectedMonth !== '' ||
-    ingredient.trim() !== '' ||
-    prepMax.trim() !== '' ||
-    sort !== 'oldest'
 
   const clearFilters = () => {
     setSearchParams(
@@ -312,6 +383,15 @@ export default function RecipesPage() {
           <Filter size={20} />
         </Fab>
       </div>
+
+      {!hasActiveFilters ? (
+        <SuggestionsSection
+          title={selectionMode ? 'Idéal pour ce repas' : 'Suggestions de la semaine'}
+          recipes={suggestionsQuery.data?.items ?? []}
+          isLoading={suggestionsQuery.isLoading}
+          onPick={handleRecipeClick}
+        />
+      ) : null}
 
       <div className="pb-3">
         <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">

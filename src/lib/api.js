@@ -174,6 +174,14 @@ export const api = {
     return Array.isArray(data) ? data.map(normalizeRecipe) : data
   },
   getRecipesPage: async (filters = {}) => normalizeRecipeListResponse(await apiRequest(`/api/recipes${toQueryString(filters)}`)),
+  getRecipeSuggestions: async (filters = {}) => {
+    const data = await apiRequest(`/api/recipes/suggestions${toQueryString(filters)}`)
+    const items = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : [])
+    return {
+      week: data?.week ?? null,
+      items: items.map(normalizeRecipe),
+    }
+  },
   getRecipeById: async (id) => normalizeRecipe(await apiRequest(`/api/recipes/${id}`)),
   createRecipe: async (payload) => normalizeRecipe(await apiRequest('/api/recipes', {
     method: 'POST',

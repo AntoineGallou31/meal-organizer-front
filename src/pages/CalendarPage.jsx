@@ -272,19 +272,25 @@ export default function CalendarPage() {
           if (part.type === 'text') {
             return <span key={idx}>{part.content}</span>
           } else if (part.type === 'recipe') {
+            const recipe = allRecipes.find((r) => r.id === part.id)
             return (
               <span
                 key={idx}
-                className="font-medium underline decoration-2 underline-offset-2 cursor-pointer text-orange-600 hover:opacity-70"
+                className="inline-flex items-center gap-1 align-middle font-medium underline decoration-2 underline-offset-2 cursor-pointer text-orange-600 hover:opacity-70"
                 onClick={(e) => {
                   e.stopPropagation()
-                  // On cherche la recette dans allRecipes
-                  const recipe = allRecipes.find((r) => r.id === part.id)
                   if (recipe) {
                     openMealRecipe(recipe)
                   }
                 }}
               >
+                {recipe?.imageUrl && (
+                  <img
+                    src={recipe.imageUrl}
+                    alt=""
+                    className="w-5 h-5 rounded-full object-cover shrink-0"
+                  />
+                )}
                 {part.name}
               </span>
             )
@@ -370,7 +376,14 @@ export default function CalendarPage() {
                       <div className="space-y-2">
                         {recipeItems.map((item) => (
                           <div key={item.id} className="flex items-center justify-between gap-2 p-2 rounded bg-sage-50">
-                            <div className="flex-1 text-sm">
+                            <div className="flex-1 flex items-center gap-1.5 text-sm">
+                              {item.recipe?.imageUrl && (
+                                <img
+                                  src={item.recipe.imageUrl}
+                                  alt=""
+                                  className="w-5 h-5 rounded-full object-cover shrink-0"
+                                />
+                              )}
                               <span
                                 className="font-medium underline decoration-2 underline-offset-2 cursor-pointer hover:opacity-70 text-orange-600"
                                 onClick={() => openMealRecipe(item.recipe)}
