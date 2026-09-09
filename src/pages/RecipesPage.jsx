@@ -17,20 +17,27 @@ import {
 } from '../components/ui'
 import { api } from '../lib/api'
 import { MONTHS } from '../lib/seasonality'
-import { getWeekKey } from '../lib/week'
 
-function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
+function RecipeTile({ recipe, selectionMode, onPick, disabled, showSeasonBadge }) {
   const classes = 'mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl bg-white text-left'
 
   const content = (
     <>
-      {recipe.imageUrl ? (
-        <img src={recipe.imageUrl} alt={recipe.title} className="h-40 w-full object-cover" loading="lazy" />
-      ) : (
-        <div className="flex h-40 items-center justify-center bg-gray-100 px-3 text-center text-xs text-gray-500">
-          Image non disponible
-        </div>
-      )}
+      <div className="relative">
+        {recipe.imageUrl ? (
+          <img src={recipe.imageUrl} alt={recipe.title} className="h-40 w-full object-cover" loading="lazy" />
+        ) : (
+          <div className="flex h-40 items-center justify-center bg-gray-100 px-3 text-center text-xs text-gray-500">
+            Image non disponible
+          </div>
+        )}
+        {showSeasonBadge ? (
+          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[10px] font-medium text-sage-700 shadow-sm">
+            <Leaf size={11} />
+            De saison
+          </span>
+        ) : null}
+      </div>
       <div className="px-3 py-2 text-sm font-medium text-gray-900">
         <div className="flex items-center justify-between gap-2">
           <span>{recipe.title}</span>
@@ -57,67 +64,6 @@ function RecipeTile({ recipe, selectionMode, onPick, disabled }) {
     <button type="button" onClick={() => onPick(recipe)} className={classes}>
       {content}
     </button>
-  )
-}
-
-function SuggestionCard({ recipe, onPick }) {
-  const reasons = recipe.suggestionReasons ?? {}
-  const badge = reasons.neverCooked
-    ? { icon: Sparkles, label: 'Jamais faite' }
-    : reasons.inSeason
-      ? { icon: Leaf, label: 'De saison' }
-      : null
-
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(recipe)}
-      className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white text-left shadow-sm"
-    >
-      {recipe.imageUrl ? (
-        <img src={recipe.imageUrl} alt={recipe.title} className="h-24 w-full object-cover" loading="lazy" />
-      ) : (
-        <div className="flex h-24 items-center justify-center bg-gray-100 text-center text-xs text-gray-500">
-          Image non disponible
-        </div>
-      )}
-      <div className="px-2.5 py-2">
-        <div className="line-clamp-2 text-xs font-medium text-gray-900">{recipe.title}</div>
-        {badge ? (
-          <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-sage-700">
-            <badge.icon size={11} />
-            {badge.label}
-          </div>
-        ) : null}
-      </div>
-    </button>
-  )
-}
-
-function SuggestionsSection({ title, recipes, isLoading, onPick }) {
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 pb-4 text-sm text-gray-600">
-        <Preloader />
-        <span>Recherche de suggestions...</span>
-      </div>
-    )
-  }
-
-  if (!recipes.length) return null
-
-  return (
-    <div className="pb-4">
-      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-sage-900">
-        <Sparkles size={16} />
-        {title}
-      </div>
-      <div className="flex gap-3 overflow-x-auto pb-1">
-        {recipes.map((recipe) => (
-          <SuggestionCard key={recipe.id} recipe={recipe} onPick={onPick} />
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -210,13 +156,12 @@ export default function RecipesPage() {
     prepMax.trim() !== '' ||
     sort !== 'oldest'
 
-  const currentWeekKey = useMemo(() => getWeekKey(new Date()), [])
-
-  const suggestionsQuery = useQuery({
-    queryKey: ['recipe-suggestions', currentWeekKey],
-    queryFn: () => api.getRecipeSuggestions({ week: currentWeekKey, limit: 7 }),
+  const suggestionsQuery = useInfiniteQuery({
+    queryKey: ['recipe-suggestions'],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => api.getRecipeSuggestions({ page: pageParam, limit: RECIPES_PAGE_SIZE }),
+    getNextPageParam: (lastPage) => (lastPage?.hasMore ? lastPage.page + 1 : undefined),
     enabled: !hasActiveFilters,
-    staleTime: 60 * 60 * 1000,
   })
 
   const recipesQuery = useInfiniteQuery({
@@ -229,6 +174,7 @@ export default function RecipesPage() {
         limit: RECIPES_PAGE_SIZE,
       }),
     getNextPageParam: (lastPage) => (lastPage?.hasMore ? lastPage.page + 1 : undefined),
+    enabled: hasActiveFilters,
   })
 
   const pickRecipeMutation = useMutation({
@@ -239,11 +185,12 @@ export default function RecipesPage() {
     },
   })
 
-  const filteredRecipes = recipesQuery.data?.pages.flatMap((page) => page.items ?? []) ?? []
+  const activeQuery = hasActiveFilters ? recipesQuery : suggestionsQuery
+  const filteredRecipes = activeQuery.data?.pages.flatMap((page) => page.items ?? []) ?? []
   const categories = categoriesQuery.data ?? []
-  const hasNextPage = recipesQuery.hasNextPage
-  const isFetchingNextPage = recipesQuery.isFetchingNextPage
-  const fetchNextPage = recipesQuery.fetchNextPage
+  const hasNextPage = activeQuery.hasNextPage
+  const isFetchingNextPage = activeQuery.isFetchingNextPage
+  const fetchNextPage = activeQuery.fetchNextPage
 
   const recipeColumns = useMemo(() => {
     const columns = Array.from({ length: columnCount }, () => [])
@@ -280,7 +227,7 @@ export default function RecipesPage() {
   }
 
   useEffect(() => {
-    if (recipesQuery.isLoading) return
+    if (activeQuery.isLoading) return
 
     const savedScroll = sessionStorage.getItem('recipes-scroll')
     if (savedScroll == null) return
@@ -299,7 +246,7 @@ export default function RecipesPage() {
     }
 
     requestAnimationFrame(tryRestore)
-  }, [recipesQuery.isLoading])
+  }, [activeQuery.isLoading])
 
   useEffect(() => {
     const node = loadMoreRef.current
@@ -384,15 +331,6 @@ export default function RecipesPage() {
         </Fab>
       </div>
 
-      {!hasActiveFilters ? (
-        <SuggestionsSection
-          title={selectionMode ? 'Idéal pour ce repas' : 'Suggestions de la semaine'}
-          recipes={suggestionsQuery.data?.items ?? []}
-          isLoading={suggestionsQuery.isLoading}
-          onPick={handleRecipeClick}
-        />
-      ) : null}
-
       <div className="pb-3">
         <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">
           <Chip
@@ -426,16 +364,16 @@ export default function RecipesPage() {
         </List>
       ) : null}
 
-      {recipesQuery.isLoading ? (
+      {activeQuery.isLoading ? (
         <div className="flex items-center justify-center gap-2 py-8 text-sm text-gray-600">
           <Preloader />
-          <span>Chargement des recettes...</span>
+          <span>{hasActiveFilters ? 'Chargement des recettes...' : 'Recherche de suggestions...'}</span>
         </div>
       ) : null}
 
-      {recipesQuery.isError ? (
+      {activeQuery.isError ? (
         <List inset strong>
-          <ListItem title="Impossible de charger les recettes" footer={recipesQuery.error?.message} />
+          <ListItem title="Impossible de charger les recettes" footer={activeQuery.error?.message} />
         </List>
       ) : null}
 
@@ -448,7 +386,7 @@ export default function RecipesPage() {
         </List>
       ) : null}
 
-      {!recipesQuery.isLoading && !recipesQuery.isError ? (
+      {!activeQuery.isLoading && !activeQuery.isError ? (
         filteredRecipes.length ? (
           <>
             <div className="flex gap-3 pb-6">
@@ -461,6 +399,7 @@ export default function RecipesPage() {
                       selectionMode={selectionMode}
                       disabled={pickRecipeMutation.isPending}
                       onPick={handleRecipeClick}
+                      showSeasonBadge={!hasActiveFilters}
                     />
                   ))}
                 </div>
@@ -469,7 +408,7 @@ export default function RecipesPage() {
 
             {hasNextPage ? <div ref={loadMoreRef} className="h-8" aria-hidden="true" /> : null}
 
-            {recipesQuery.isFetching && !recipesQuery.isFetchingNextPage ? (
+            {activeQuery.isFetching && !isFetchingNextPage ? (
               <div className="px-4 pb-4 text-center text-xs text-gray-500">Mise à jour des résultats...</div>
             ) : null}
 
@@ -481,7 +420,9 @@ export default function RecipesPage() {
           </>
         ) : (
           <List inset strong>
-            <ListItem title="Aucune recette ne correspond à la recherche" />
+            <ListItem
+              title={hasActiveFilters ? 'Aucune recette ne correspond à la recherche' : 'Aucune suggestion de saison pour le moment'}
+            />
           </List>
         )
       ) : null}
