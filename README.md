@@ -1,99 +1,117 @@
-# 🍽️ Meal Organizer
+# 🍳 Meal Organizer
 
-**Une PWA full-stack pour planifier ses repas, importer des recettes depuis le web en un clic, et ne plus jamais se demander "qu'est-ce qu'on mange ce soir ?".**
+**Une PWA qui transforme n'importe quel lien de recette en fiche structurée, et organise le planning de repas de la semaine à partir d'une bibliothèque personnelle.**
 
-Conçue et développée en solo, utilisée au quotidien par mon couple pour organiser nos repas de la semaine.
+Pensée à l'origine pour un usage personnel (à deux), l'app automatise ce qui prend habituellement du temps : copier une recette trouvée en ligne, la ranger, et décider quoi cuisiner chaque semaine.
 
-[🔗 Frontend repo](https://github.com/AntoineGallou31/meal-organizer-front) · [🔗 Backend repo](https://github.com/AntoineGallou31/meal-organizer-back)
+🔗 **[Démo en ligne](https://meal-organizer-front-demo.vercel.app/)** — données fictives, sans authentification
+📦 [Repo Backend](https://github.com/AntoineGallou31/meal-organizer-back)
 
----
-
-## 📸 Aperçu
-
-> _Captures d'écran à ajouter dans `/screenshots`_
-
-| Planning hebdomadaire | Bibliothèque de recettes | Fiche recette |
-|---|---|---|
-| ![Calendar](screenshots/calendar.png) | ![Recipes](screenshots/recipes.png) | ![Detail](screenshots/detail.png) |
-
-| Import par URL |
-|---|
-| ![Import](screenshots/import.png) |
+<p align="center">
+  <img src="screenshots/recipes-view.png" alt="Vue bibliothèque de recettes sur mobile" width="360"/>
+</p>
 
 ---
 
-## ✨ Pourquoi ce projet
+## ✨ Fonctionnalités
 
-On a tous ce dossier de liens de recettes glanées sur Instagram, un blog culinaire ou un site de recettes, jamais réellement exploité, et cette question récurrente du dimanche soir : "on planifie quoi cette semaine ?".
+### 🍳 Recettes
+- **Import automatique par URL** — colle un lien depuis n'importe quel site de recette, le backend scrape la page en priorisant le format structuré `schema.org` / JSON-LD, avec repli sur des heuristiques CSS et mots-clés en français si besoin. Titre, image, ingrédients, étapes et temps de préparation sont extraits automatiquement.
+- **Détection de doublons** — refuse l'import si l'URL a déjà été utilisée.
+- **Import partiel avec confirmation** — si des champs sont manquants, l'app propose de forcer l'import plutôt que d'échouer silencieusement.
+- **Catégorisation automatique** par moteur de mots-clés (titre + ingrédients).
+- **Détection de saisonnalité** — croise les ingrédients avec un calendrier français des produits de saison pour tagger les mois pertinents.
+- **Scaler de portions** avec recalcul des quantités, gestion des fractions unicode (½ ⅓ ¼).
+- Fiche recette détaillée, recettes similaires suggérées, compteur "cuisinée X fois", édition manuelle.
 
-Meal Organizer part de ce problème très concret et propose :
-- **Un import de recette en un clic** — colle une URL, l'app scrape et structure automatiquement titre, image, ingrédients, étapes et temps de préparation.
-- **Un planning hebdomadaire** avec cases déjeuner/dîner, glisser une recette dessus ou écrire une note libre.
-- **Des suggestions intelligentes** basées sur la saisonnalité des ingrédients et l'historique réel de ce qui a été cuisiné.
-- **Une expérience mobile installable** (PWA) avec partage direct depuis le navigateur ou une app tierce vers Meal Organizer.
+### 📋 Bibliothèque
+- Grille en scroll infini, recherche texte, filtres (catégorie, ingrédient, mois/saison, temps de prépa max), tri multiple.
+- Masquage automatique des recettes incomplètes.
 
----
+### 🧠 Suggestions intelligentes
+Feed généré à partir de la saisonnalité, de la popularité réelle (déduite de l'historique du planning), d'une pénalité de diversité pour éviter les répétitions de catégories, et d'exclusions (desserts/boissons/snacks, recettes déjà suggérées la semaine précédente).
 
-## 🧠 Fonctionnalités clés
+### 📅 Planning hebdomadaire
+- Vue calendrier déjeuner/dîner × 7 jours.
+- Recette existante ou note libre par case, avec auto-complétion `@recette`.
+- Historique utilisé pour calculer popularité et fréquence de cuisine.
 
-### Import de recette par URL
-Colle un lien depuis n'importe quel site de recettes : le backend scrape la page (parsing des données structurées `schema.org` en priorité, heuristiques CSS/mots-clés en repli), extrait titre, image, ingrédients, étapes et temps de préparation, puis catégorise automatiquement la recette selon son contenu. Détection des doublons, et flux de confirmation si des informations sont partielles.
+### 📱 PWA
+- Installable sur mobile et desktop.
+- **Web Share Target** : partage un lien de recette depuis n'importe quelle app pour lancer l'import directement dans Meal Organizer.
+- Cache des assets hors-ligne via Workbox.
 
-### Planning hebdomadaire
-Vue calendrier (déjeuner/dîner × 7 jours) : on y glisse une recette existante ou on écrit une note libre avec auto-complétion `@recette` pour lier une recette directement depuis une note.
-
-### Suggestions de saison
-Un moteur de recommandation croise un calendrier de saisonnalité des ingrédients (produits de saison, en français), la popularité réelle des recettes (nombre de fois cuisinées, déduit de l'historique du planning) et une pénalité de diversité pour éviter de répéter toujours les mêmes catégories.
-
-### Fiche recette détaillée
-Temps de préparation, nombre de portions avec **recalcul automatique des quantités** (y compris les fractions unicode ½ ⅓ ¼), badges de saisonnalité, recettes similaires, et compteur "cuisinée X fois".
-
-### PWA installable et partage natif
-Installable sur mobile comme une app native, avec un **Web Share Target** : depuis n'importe quelle app (navigateur, réseau social), partage un lien de recette directement vers Meal Organizer pour lancer l'import.
+### 🗂️ Catégories
+CRUD complet avec couleur et mots-clés associés, catégorie par défaut protégée, compteur de recettes.
 
 ---
 
 ## 🛠️ Stack technique
 
 **Frontend**
-- React 19 + Vite
-- Tailwind CSS 4
-- TanStack React Query (infinite scroll, cache, mutations)
-- React Router 7
-- Radix UI (dialog, dropdown, form)
-- `vite-plugin-pwa` (Workbox, manifest, Web Share Target)
+| | |
+|---|---|
+| Framework | React 19 + Vite |
+| Style | Tailwind CSS 4 |
+| Data fetching | TanStack React Query (cache, mutations, scroll infini) |
+| Routing | React Router 7 |
+| UI primitives | Radix UI |
+| PWA | `vite-plugin-pwa` (Workbox, manifest, Web Share Target) |
 
 **Backend**
-- Node.js + Express 5
-- Supabase (PostgreSQL + RPC pour la recherche par ingrédient)
-- Axios + Cheerio (scraping), parsing `schema.org` / JSON-LD, repli sur heuristiques CSS
-- Déployé en serverless sur Vercel
-
-**Architecture**
-
-```
-┌─────────────────────┐        HTTPS/JSON        ┌──────────────────────┐
-│   React PWA (Vite)   │ ────────────────────────▶│   Express API         │
-│   meal-organizer-    │◀──────────────────────── │   meal-organizer-back │
-│   front               │                          │   (Vercel serverless) │
-└─────────────────────┘                           └──────────┬───────────┘
-                                                               │
-                                                    ┌──────────▼───────────┐
-                                                    │   Supabase (Postgres) │
-                                                    └───────────────────────┘
-```
+| | |
+|---|---|
+| Runtime | Node.js + Express 5 |
+| Base de données | Supabase (PostgreSQL + RPC pour la recherche par ingrédient) |
+| Scraping | Axios + Cheerio, parsing `schema.org`/JSON-LD, repli sur heuristiques CSS |
+| Déploiement | Serverless sur Vercel |
 
 ---
 
-## 📂 Repos du projet
+## 🏗️ Architecture
 
-Ce repo est une vitrine du projet. Le code source complet se trouve dans deux repos séparés :
+Le projet est séparé en deux repos, déployés indépendamment :
 
-- **[meal-organizer-front](https://github.com/AntoineGallou31/meal-organizer-front)** — application React/Vite (PWA)
-- **[meal-organizer-back](https://github.com/AntoineGallou31/meal-organizer-back)** — API Express + Supabase
+```
+meal-organizer-front/   → React + Vite, déployé sur Vercel
+meal-organizer-back/    → Express, fonctions serverless Vercel
+```
+
+La démo publique tourne sur le même code que ce repo, connectée à une instance Supabase séparée avec des données fictives — aucune donnée personnelle n'est exposée.
+
+---
+
+## 🚀 Installation locale
+
+```bash
+git clone https://github.com/AntoineGallou31/meal-organizer-front.git
+cd meal-organizer-front
+npm install
+```
+
+Crée un fichier `.env.local` à la racine avec tes variables Supabase :
+
+```env
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_API_URL=http://localhost:3000
+```
+
+Puis lance le serveur de dev :
+
+```bash
+npm run dev
+```
+
+> Le backend ([meal-organizer-back](https://github.com/AntoineGallou31/meal-organizer-back)) doit tourner en parallèle — voir son README pour la configuration.
 
 ---
 
 ## 👤 Auteur
 
-Développé par **Antoine Gallou** — projet personnel utilisé au quotidien, pensé comme un cas d'usage réel plutôt qu'un exercice académique.
+**Antoine Gallou**
+[GitHub](https://github.com/AntoineGallou31)
+
+---
+
+*Projet personnel né d'un besoin réel : simplifier l'organisation des repas de la semaine avec ma copine.*
