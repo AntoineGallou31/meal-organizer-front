@@ -84,13 +84,13 @@ function useDebouncedValue(value, delay = 250) {
 export default function RecipesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [searchParams] = useSearchParams()
-  const [search, setSearch] = useState('')
-  const [selectedCategoryId, setSelectedCategoryId] = useState('')
-  const [selectedMonth, setSelectedMonth] = useState('')
-  const [ingredient, setIngredient] = useState('')
-  const [prepMax, setPrepMax] = useState('')
-  const [sort, setSort] = useState('oldest')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const search = searchParams.get('q') ?? ''
+  const selectedCategoryId = searchParams.get('category') ?? ''
+  const selectedMonth = searchParams.get('month') ?? ''
+  const ingredient = searchParams.get('ingredient') ?? ''
+  const prepMax = searchParams.get('prepMax') ?? ''
+  const sort = searchParams.get('sort') ?? 'oldest'
   const [showFilters, setShowFilters] = useState(false)
   const [columnCount, setColumnCount] = useState(2)
   const loadMoreRef = useRef(null)
@@ -98,6 +98,28 @@ export default function RecipesPage() {
   const selectedDate = searchParams.get('date') ?? ''
   const selectedSlot = searchParams.get('slot') ?? ''
   const canPickRecipe = selectionMode && selectedDate !== '' && selectedSlot !== ''
+
+  const updateSearchParam = (key, value) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (value === '' || value == null) {
+          next.delete(key)
+        } else {
+          next.set(key, value)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const setSearch = (value) => updateSearchParam('q', value)
+  const setSelectedCategoryId = (value) => updateSearchParam('category', value)
+  const setSelectedMonth = (value) => updateSearchParam('month', value)
+  const setIngredient = (value) => updateSearchParam('ingredient', value)
+  const setPrepMax = (value) => updateSearchParam('prepMax', value)
+  const setSort = (value) => updateSearchParam('sort', value)
 
   const categoriesQuery = useQuery({
     queryKey: ['categories'],
@@ -161,16 +183,19 @@ export default function RecipesPage() {
     sort !== 'oldest'
 
   const clearFilters = () => {
-    setSearch('')
-    setSelectedCategoryId('')
-    setSelectedMonth('')
-    setIngredient('')
-    setPrepMax('')
-    setSort('oldest')
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        ;['q', 'category', 'month', 'ingredient', 'prepMax', 'sort'].forEach((key) => next.delete(key))
+        return next
+      },
+      { replace: true },
+    )
   }
 
   const handleRecipeClick = (recipe) => {
     if (!canPickRecipe) {
+      sessionStorage.setItem('recipes-scroll', String(window.scrollY))
       navigate(`/recipes/${recipe.id}`)
       return
     }
@@ -178,10 +203,32 @@ export default function RecipesPage() {
     pickRecipeMutation.mutate({
       date: selectedDate,
       slot: selectedSlot,
-      type: 'note',
-      note: `[@${recipe.title}|${recipe.id}]`,
+      type: 'recipe',
+      recipeId: recipe.id,
     })
   }
+
+  useEffect(() => {
+    if (recipesQuery.isLoading) return
+
+    const savedScroll = sessionStorage.getItem('recipes-scroll')
+    if (savedScroll == null) return
+
+    sessionStorage.removeItem('recipes-scroll')
+
+    const target = Number(savedScroll)
+    let attempts = 0
+
+    const tryRestore = () => {
+      window.scrollTo({ top: target, behavior: 'instant' })
+      attempts += 1
+      if (document.documentElement.scrollHeight - window.innerHeight < target && attempts < 20) {
+        requestAnimationFrame(tryRestore)
+      }
+    }
+
+    requestAnimationFrame(tryRestore)
+  }, [recipesQuery.isLoading])
 
   useEffect(() => {
     const node = loadMoreRef.current

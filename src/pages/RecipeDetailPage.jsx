@@ -129,7 +129,7 @@ export default function RecipeDetailPage() {
       <Navbar
         title="Fiche recette"
         left={
-          <Button clear small onClick={() => navigate('/recipes')} title="Retour">
+          <Button clear small onClick={() => navigate(-1)} title="Retour">
             <ChevronLeft size={30} />
           </Button>
         }

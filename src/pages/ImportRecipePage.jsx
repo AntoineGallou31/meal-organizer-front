@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, LoaderCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Block,
   Button,
@@ -30,11 +30,16 @@ function formatMissingFieldLabel(field) {
 }
 
 export default function ImportRecipePage() {
-  const [url, setUrl] = useState('')
+  const [searchParams] = useSearchParams()
+  const initialUrl = searchParams.get('url') ?? ''
+  const shouldAutoImport = searchParams.get('autoImport') === '1' && initialUrl.length > 0
+  const [url, setUrl] = useState(initialUrl)
   const [importBlocked, setImportBlocked] = useState(null)
   const [importIssue, setImportIssue] = useState(null)
+  const [duplicateRecipe, setDuplicateRecipe] = useState(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const hasAutoImported = useRef(false)
 
   const importMutation = useMutation({
     mutationFn: ({ importUrl, forceImport = false }) =>
@@ -42,10 +47,15 @@ export default function ImportRecipePage() {
     onSuccess: (recipe) => {
       setImportBlocked(null)
       setImportIssue(null)
+      setDuplicateRecipe(null)
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
       navigate(`/recipes/${recipe.id}`)
     },
     onError: (error) => {
+      if (error?.status === 409 && error?.details?.code === 'DUPLICATE_IMPORTED_RECIPE') {
+        setDuplicateRecipe(error.details.details)
+        return
+      }
       if (error?.status === 422 && error?.details?.code === 'IMPORT_BLOCKED') {
         setImportBlocked(error.details)
         return
@@ -56,10 +66,19 @@ export default function ImportRecipePage() {
     },
   })
 
+  useEffect(() => {
+    if (shouldAutoImport && !hasAutoImported.current) {
+      hasAutoImported.current = true
+      importMutation.mutate({ importUrl: initialUrl })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoImport, initialUrl])
+
   const handleSubmit = (event) => {
     event.preventDefault()
     setImportBlocked(null)
     setImportIssue(null)
+    setDuplicateRecipe(null)
     importMutation.mutate({ importUrl: url })
   }
 
@@ -78,6 +97,10 @@ export default function ImportRecipePage() {
     setImportBlocked(null)
   }
 
+  const handleCancelDuplicate = () => {
+    setDuplicateRecipe(null)
+  }
+
   const preview = importIssue?.recipePreview ?? null
   const missingFields = importIssue?.missingFields ?? []
   const blockedMissingFields = importBlocked?.missingFields ?? []
@@ -88,7 +111,7 @@ export default function ImportRecipePage() {
         title="Importer une recette"
         left={
           <Button clear small onClick={() => navigate('/recipes/new')} title="Retour">
-            <ChevronLeft size={20} />
+            <ChevronLeft size={30} />
           </Button>
         }
       />
@@ -96,9 +119,11 @@ export default function ImportRecipePage() {
       <Block className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-cream-200">
         <p className="text-sm font-semibold text-sage-900">Import par URL</p>
         <p className="mt-1 text-sm text-sage-700">
-          Collez l'adresse de la recette complète. Le lien peut pointer vers un site de cuisine, un blog ou une page article contenant une vraie recette.
+          {shouldAutoImport
+            ? 'Import du lien partagé en cours...'
+            : "Collez l'adresse de la recette complète. Le lien peut pointer vers un site de cuisine, un blog ou une page article contenant une vraie recette."}
         </p>
-      
+
 
       <form onSubmit={handleSubmit}>
           <ListInput
@@ -119,6 +144,26 @@ export default function ImportRecipePage() {
         </div>
       </form>
     </Block>
+
+      {duplicateRecipe ? (
+        <Block className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-amber-900">Recette déjà importée</p>
+            <p className="text-sm text-amber-800">
+              Cette URL a déjà été importée sous le titre « {duplicateRecipe.title} ».
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            <Button tonal type="button" onClick={handleCancelDuplicate}>
+              Fermer
+            </Button>
+            <Button type="button" onClick={() => navigate(`/recipes/${duplicateRecipe.existingRecipeId}`)}>
+              Voir la recette
+            </Button>
+          </div>
+        </Block>
+      ) : null}
 
       {importBlocked ? (
         <Block className="rounded-2xl bg-red-50 p-4 ring-1 ring-red-200">
@@ -181,17 +226,11 @@ export default function ImportRecipePage() {
 
       {importMutation.isError &&
       importMutation.error?.details?.code !== 'IMPORT_BLOCKED' &&
-      importMutation.error?.details?.code !== 'IMPORT_VALIDATION_FAILED' ? (
+      importMutation.error?.details?.code !== 'IMPORT_VALIDATION_FAILED' &&
+      importMutation.error?.details?.code !== 'DUPLICATE_IMPORTED_RECIPE' ? (
         <List inset strong>
           <ListItem title="Impossible d'importer la recette" footer={importMutation.error.message} />
         </List>
-      ) : null}
-
-      {!importBlocked && !importIssue ? (
-        <Block className="flex items-center gap-2 rounded-2xl bg-sage-50 p-4 text-sm text-sage-700 ring-1 ring-sage-100">
-          <Preloader />
-          <span>Collez une URL pour commencer l'import.</span>
-        </Block>
       ) : null}
     </Page>
   )

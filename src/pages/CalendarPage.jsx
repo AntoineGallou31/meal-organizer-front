@@ -178,7 +178,7 @@ export default function CalendarPage() {
     const lastAtIndex = text.lastIndexOf('@')
     if (lastAtIndex !== -1) {
       const afterAt = text.substring(lastAtIndex + 1)
-      if (afterAt.includes('\n') || afterAt.includes(' ')) {
+      if (afterAt.includes('\n')) {
         setAtSuggestions([])
         setAtPosition(null)
       } else {
@@ -194,15 +194,39 @@ export default function CalendarPage() {
     }
   }
 
-  const insertRecipe = (recipe) => {
-    if (atPosition === null) return
+  const insertRecipe = async (recipe) => {
+    if (atPosition === null || !editingSlot) return
 
+    // Remove the "@partial" text that triggered the suggestion, and add the
+    // recipe as its own meal-plan item instead of inlining it in the note.
     const before = editingText.substring(0, atPosition)
-    const after = editingText.substring(editingText.indexOf('@', atPosition) + 1)
-    const newText = `${before}[@${recipe.title}|${recipe.id}] ${after}`
-    setEditingText(newText)
+    const afterAt = editingText.substring(atPosition + 1)
+    const newlineIndex = afterAt.indexOf('\n')
+    const searchLength = newlineIndex === -1 ? afterAt.length : newlineIndex
+    const after = afterAt.substring(searchLength)
+    const remainingText = `${before}${after}`.trim()
+    setEditingText(remainingText)
     setAtSuggestions([])
     setAtPosition(null)
+
+    const slot = editingSlot
+
+    await createMealPlanItemMutation.mutateAsync({
+      date: slot.date,
+      slot: slot.slot,
+      type: 'recipe',
+      recipeId: recipe.id,
+    })
+
+    if (remainingText) {
+      if (slot.itemId) {
+        await updateMealPlanItemMutation.mutateAsync({ id: slot.itemId, payload: { note: remainingText, type: 'note' } })
+      } else {
+        await createMealPlanItemMutation.mutateAsync({ date: slot.date, slot: slot.slot, note: remainingText, type: 'note' })
+      }
+    } else {
+      stopEditingSlot()
+    }
   }
 
   const handleAddRecipe = (recipe) => {

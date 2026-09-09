@@ -5,6 +5,7 @@ import RecipeFormPage from './pages/RecipeFormPage'
 import ImportRecipePage from './pages/ImportRecipePage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 import RecipesPage from './pages/RecipesPage'
+import ShareTargetPage from './pages/ShareTargetPage'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'https://meal-organizer-back.vercel.app'
 
@@ -18,6 +19,7 @@ function AppLayout() {
           <Route path="/recipes" element={<RecipesPage />} />
           <Route path="/recipes/new" element={<RecipeFormPage />} />
           <Route path="/recipes/import" element={<ImportRecipePage />} />
+          <Route path="/share-target" element={<ShareTargetPage />} />
           <Route path="/recipes/:id/edit" element={<RecipeFormPage />} />
           <Route path="/recipes/:id" element={<RecipeDetailPage />} />
         </Routes>
