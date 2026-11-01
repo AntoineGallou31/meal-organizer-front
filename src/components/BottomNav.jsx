@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CalendarDays, SquareMenu } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import clsx from 'clsx'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 const navItems = [
   { to: '/', label: 'Planning', icon: CalendarDays },
@@ -9,6 +10,7 @@ const navItems = [
 
 export default function BottomNav() {
   const { pathname, search } = useLocation()
+  const navigate = useNavigate()
   const lastVisitedRef = useRef({ '/': '/', '/recipes': '/recipes' })
 
   useEffect(() => {
@@ -24,33 +26,46 @@ export default function BottomNav() {
     }
   }, [pathname, search])
 
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-50">
-      <nav className="flex w-full items-center gap-2 border-t border-slate-200 bg-white/90 px-4 py-2 shadow-soft backdrop-blur-xl">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)
+  // An inactive tab brings back the last visited state of that tab. The ref is
+  // read here rather than during render, so the link's href stays the tab root.
+  const handleClick = (event, item, isActive) => {
+    if (isActive || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    navigate(lastVisitedRef.current[item.to])
+  }
 
-          return (
-            <Link
-              key={item.to}
-              to={isActive ? item.to : lastVisitedRef.current[item.to]}
-              className={[
-                'flex flex-col h-16 w-16 flex-1 items-center justify-center rounded-full transition',
-                isActive
-                  ? 'text-terracotta-500'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
-              ].join(' ')}
-              aria-current={isActive ? 'page' : undefined}
-              aria-label={item.label}
-              title={item.label}
+  return (
+    <nav
+      aria-label="Navigation principale"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-[calc(64px+max(20px,env(safe-area-inset-bottom)))] grid-cols-2 gap-2 border-t border-sage-200 bg-white px-6 pt-2 pb-[max(20px,env(safe-area-inset-bottom))]"
+    >
+      {navItems.map((item) => {
+        const Icon = item.icon
+        const isActive = item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)
+
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={(event) => handleClick(event, item, isActive)}
+            aria-current={isActive ? 'page' : undefined}
+            className={clsx(
+              'flex flex-col items-center justify-center gap-1 rounded-2xl text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-700',
+              isActive ? 'font-semibold text-terracotta-700' : 'font-medium text-sage-500 hover:text-sage-700',
+            )}
+          >
+            <span
+              className={clsx(
+                'flex h-[30px] w-14 items-center justify-center rounded-[15px]',
+                isActive && 'bg-terracotta-100',
+              )}
             >
-              <Icon size={18} className={isActive ? 'text-terracotta-500' : 'text-slate-600'} />
-              <span className="mt-1 text-xs">{item.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
-    </div>
+              <Icon size={20} aria-hidden="true" />
+            </span>
+            {item.label}
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
