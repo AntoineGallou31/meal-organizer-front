@@ -6,6 +6,7 @@ import {
   findSlotItems,
   getMealPlanKey,
   getNextPosition,
+  mealPlanQueryOptions,
   patchItemInWeek,
   removeItemFromWeek,
 } from '../../lib/mealPlan'
@@ -23,8 +24,19 @@ async function deleteItem(id, options = {}) {
   }
 }
 
-// Créations, modifications et suppressions d'items du planning, avec mise à jour
-// optimiste du cache ['meal-plan', weekKey] et retour arrière ciblé en cas d'erreur.
+function createItem(tempItem) {
+  return api.createMealPlanItem({
+    date: tempItem.date,
+    slot: tempItem.slot,
+    type: tempItem.type,
+    recipeId: tempItem.recipeId ?? undefined,
+    note: tempItem.note ?? undefined,
+    position: tempItem.position,
+  })
+}
+
+// Créations, modifications, suppressions et déplacements d'items du planning, avec mise
+// à jour optimiste du cache ['meal-plan', weekKey] et retour arrière ciblé en cas d'erreur.
 export default function useMealPlanMutations({ onError } = {}) {
   const queryClient = useQueryClient()
 
@@ -36,33 +48,28 @@ export default function useMealPlanMutations({ onError } = {}) {
   }
 
   // Ne recharge qu'une fois la dernière mutation terminée : un rechargement
-  // intermédiaire ferait disparaître les changements optimistes encore en vol
+  // intermédiaire ferait disparaître les changements optimistes encore en vol.
+  // Toutes les semaines sont concernées, un déplacement pouvant changer de semaine.
   const invalidateWhenIdle = () => {
     if (queryClient.isMutating({ mutationKey: MUTATION_KEY }) <= 1) {
       queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
     }
   }
 
+  const replaceTempId = (tempItem, created) => {
+    queryClient.setQueryData(getMealPlanKey(tempItem.date), (data) =>
+      patchItemInWeek(data, tempItem.id, { id: created.id, createdAt: created.createdAt ?? tempItem.createdAt }),
+    )
+  }
+
   const createMutation = useMutation({
     mutationKey: MUTATION_KEY,
-    mutationFn: ({ tempItem }) =>
-      api.createMealPlanItem({
-        date: tempItem.date,
-        slot: tempItem.slot,
-        type: tempItem.type,
-        recipeId: tempItem.recipeId ?? undefined,
-        note: tempItem.note ?? undefined,
-        position: tempItem.position,
-      }),
+    mutationFn: ({ tempItem }) => createItem(tempItem),
     onMutate: async ({ tempItem }) => {
       const queryKey = await prepare(tempItem.date)
       queryClient.setQueryData(queryKey, (data) => addItemToWeek(data, tempItem))
     },
-    onSuccess: (created, { tempItem }) => {
-      queryClient.setQueryData(getMealPlanKey(tempItem.date), (data) =>
-        patchItemInWeek(data, tempItem.id, { id: created.id, createdAt: created.createdAt ?? tempItem.createdAt }),
-      )
-    },
+    onSuccess: (created, { tempItem }) => replaceTempId(tempItem, created),
     onError: (error, { tempItem }) => {
       queryClient.setQueryData(getMealPlanKey(tempItem.date), (data) => removeItemFromWeek(data, tempItem.id))
       onError?.(error)
@@ -98,22 +105,78 @@ export default function useMealPlanMutations({ onError } = {}) {
     onSettled: invalidateWhenIdle,
   })
 
-  // Ajoute une recette ou une note à la fin d'un créneau et renvoie l'id temporaire de l'item
-  const addItem = ({ date, slot, type, recipe = null, note = null }) => {
-    const items = findSlotItems(queryClient.getQueryData(getMealPlanKey(date)), date, slot)
-    const tempItem = {
+  // Le backend ne sait pas changer la date ni le créneau d'un item :
+  // déplacer = créer à la destination, puis supprimer l'original
+  const moveMutation = useMutation({
+    mutationKey: MUTATION_KEY,
+    mutationFn: async ({ item, tempItem }) => {
+      const created = await createItem(tempItem)
+      try {
+        await deleteItem(item.id)
+      } catch (error) {
+        error.partialMove = true
+        error.created = created
+        throw error
+      }
+      return created
+    },
+    onMutate: async ({ item, tempItem }) => {
+      const originKey = await prepare(item.date)
+      const destinationKey = await prepare(tempItem.date)
+      queryClient.setQueryData(originKey, (data) => removeItemFromWeek(data, item.id))
+      queryClient.setQueryData(destinationKey, (data) => addItemToWeek(data, tempItem))
+    },
+    onSuccess: (created, { tempItem }) => replaceTempId(tempItem, created),
+    onError: (error, { item, tempItem }) => {
+      if (error.partialMove) {
+        replaceTempId(tempItem, error.created)
+      } else {
+        queryClient.setQueryData(getMealPlanKey(tempItem.date), (data) => removeItemFromWeek(data, tempItem.id))
+      }
+      queryClient.setQueryData(getMealPlanKey(item.date), (data) => addItemToWeek(data, item))
+      onError?.(error)
+    },
+    onSettled: invalidateWhenIdle,
+  })
+
+  // Item optimiste en fin de créneau. Sans les items de la semaine en cache,
+  // la position est laissée au serveur (fin de créneau).
+  const buildTempItem = ({ date, slot, type, recipe = null, note = null }) => {
+    const data = queryClient.getQueryData(getMealPlanKey(date))
+    return {
       id: createTempId(),
       date,
       slot,
       type,
-      position: getNextPosition(items),
+      position: data ? getNextPosition(findSlotItems(data, date, slot)) : null,
       recipeId: recipe?.id ?? null,
       note,
       recipe,
       createdAt: new Date().toISOString(),
     }
+  }
+
+  // Ajoute une recette ou une note à la fin d'un créneau et renvoie l'id temporaire de l'item
+  const addItem = (fields) => {
+    const tempItem = buildTempItem(fields)
     createMutation.mutate({ tempItem })
     return tempItem.id
+  }
+
+  // Duplique ou déplace un item vers un autre repas, éventuellement dans une autre semaine
+  const transferItem = async ({ item, date, slot, move }) => {
+    try {
+      // Les items de la destination donnent la position du nouvel item
+      await queryClient.ensureQueryData(mealPlanQueryOptions(date))
+    } catch {
+      // Semaine indisponible : la position sera laissée au serveur
+    }
+    const tempItem = buildTempItem({ date, slot, type: item.type, recipe: item.recipe, note: item.note })
+    if (move) {
+      moveMutation.mutate({ item, tempItem })
+    } else {
+      createMutation.mutate({ tempItem })
+    }
   }
 
   // Page masquée ou fermée : la requête part tout de suite, sans attendre onMutate,
@@ -130,6 +193,7 @@ export default function useMealPlanMutations({ onError } = {}) {
 
   return {
     addItem,
+    transferItem,
     updateNote: (item, note) => updateMutation.mutate({ item, note }),
     removeItem: (item) => removeMutation.mutate({ item }),
     removeItemOnExit,

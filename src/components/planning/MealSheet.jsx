@@ -1,8 +1,10 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import clsx from 'clsx'
 import dayjs from 'dayjs'
 import { Plus, X } from 'lucide-react'
 import { Sheet } from '../ui'
 import { formatDayLong, getSlotItems, getSlotLabel, isPendingItem, splitItems } from '../../lib/mealPlan'
+import MoveDuplicateView from './MoveDuplicateView'
 import NoteField from './NoteField'
 import RecipeCard from './RecipeCard'
 import SeasonIdeas from './SeasonIdeas'
@@ -25,6 +27,7 @@ export default function MealSheet({
   onAddItem,
   onUpdateNote,
   onRemoveItem,
+  onTransferItem,
 }) {
   // Garde le dernier créneau affiché pour que le contenu reste visible pendant l'animation de fermeture
   const [shownTarget, setShownTarget] = useState(target)
@@ -81,6 +84,8 @@ export default function MealSheet({
           onAddItem={onAddItem}
           onUpdateNote={onUpdateNote}
           onRemoveItem={onRemoveItem}
+          onTransferItem={onTransferItem}
+          hasNotice={Boolean(target && notice)}
         />
       ) : null}
 
@@ -95,8 +100,49 @@ export default function MealSheet({
   )
 }
 
-function MealSheetBody({ date, slot, slotLabel, items, onClose, onAddRecipe, onAddItem, onUpdateNote, onRemoveItem }) {
+function MealSheetBody({
+  date,
+  slot,
+  slotLabel,
+  items,
+  onClose,
+  onAddRecipe,
+  onAddItem,
+  onUpdateNote,
+  onRemoveItem,
+  onTransferItem,
+  hasNotice,
+}) {
   const menuTitleId = useId()
+  // Laisse défiler le bas du contenu au-dessus du bandeau tant qu'il est affiché
+  const scrollAreaClass = clsx(
+    'flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pt-4',
+    hasNotice ? 'pb-24' : 'pb-2',
+  )
+  const actionsIdPrefix = useId()
+  const getActionsId = (item) => `${actionsIdPrefix}-${item.id}`
+
+  // Sous-vue « Vers quel repas ? » : { mode: 'move' | 'duplicate', item }
+  const [transfer, setTransfer] = useState(null)
+  // En quittant la sous-vue, le focus revient sur le menu de la recette (ou sur le titre
+  // de la liste si la recette a été déplacée)
+  const focusAfterTransferRef = useRef(null)
+  useEffect(() => {
+    if (transfer || !focusAfterTransferRef.current) return
+    document.getElementById(focusAfterTransferRef.current)?.focus()
+    focusAfterTransferRef.current = null
+  }, [transfer])
+
+  const closeTransfer = (focusId) => {
+    focusAfterTransferRef.current = focusId
+    setTransfer(null)
+  }
+
+  const handleTransferPick = (destinationDate, destinationSlot) => {
+    onTransferItem({ item: transfer.item, date: destinationDate, slot: destinationSlot, mode: transfer.mode })
+    closeTransfer(transfer.mode === 'move' ? menuTitleId : getActionsId(transfer.item))
+  }
+
   // Note en cours de saisie. Une fois validée, elle reste affichée (grisée) jusqu'à ce que
   // l'item optimiste soit rendu à sa place : sans ça, le contenu remonterait un instant
   // et le tap qui a provoqué le blur pourrait tomber à côté de son bouton.
@@ -127,11 +173,44 @@ function MealSheetBody({ date, slot, slotLabel, items, onClose, onAddRecipe, onA
     setDraft((current) => (current ? { ...current, tempId } : current))
   }
 
+  const footer = (
+    <div className="flex-none px-5 pt-4 pb-6">
+      <button
+        type="button"
+        onClick={onClose}
+        className="h-[52px] w-full rounded-[14px] bg-terracotta-700 text-base font-semibold text-white transition hover:bg-terracotta-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-700 focus-visible:ring-offset-2"
+      >
+        Terminé
+      </button>
+    </div>
+  )
+
+  if (transfer) {
+    return (
+      <>
+        <div key="transfer" className={scrollAreaClass}>
+          <MoveDuplicateView
+            mode={transfer.mode}
+            item={transfer.item}
+            origin={{ date, slot }}
+            onBack={() => closeTransfer(getActionsId(transfer.item))}
+            onPick={handleTransferPick}
+          />
+        </div>
+        {footer}
+      </>
+    )
+  }
+
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4 pb-2">
+      <div key="menu" className={clsx(scrollAreaClass, 'gap-4')}>
         <section aria-labelledby={menuTitleId} className="flex flex-col gap-2">
-          <h3 id={menuTitleId} className="text-[11px]/4 font-semibold uppercase tracking-[0.06em] text-sage-500">
+          <h3
+            id={menuTitleId}
+            tabIndex={-1}
+            className="text-[11px]/4 font-semibold uppercase tracking-[0.06em] text-sage-500 outline-none"
+          >
             {menuTitle}
           </h3>
 
@@ -140,7 +219,15 @@ function MealSheetBody({ date, slot, slotLabel, items, onClose, onAddRecipe, onA
           ) : null}
 
           {recipes.map((item) => (
-            <RecipeCard key={item.id} item={item} pending={isPendingItem(item)} onRemove={() => onRemoveItem(item)} />
+            <RecipeCard
+              key={item.id}
+              item={item}
+              pending={isPendingItem(item)}
+              actionsId={getActionsId(item)}
+              onMove={() => setTransfer({ mode: 'move', item })}
+              onDuplicate={() => setTransfer({ mode: 'duplicate', item })}
+              onRemove={() => onRemoveItem(item)}
+            />
           ))}
 
           {notes.map((item, index) => (
@@ -171,6 +258,7 @@ function MealSheetBody({ date, slot, slotLabel, items, onClose, onAddRecipe, onA
         <div className="grid flex-none grid-cols-2 gap-2">
           <button
             type="button"
+            aria-label="Ajouter une recette"
             onClick={() => onAddRecipe(date, slot)}
             className={`${addButtonClass} border-terracotta-200 bg-terracotta-50 text-terracotta-700 hover:bg-terracotta-100 focus-visible:ring-terracotta-700`}
           >
@@ -179,6 +267,7 @@ function MealSheetBody({ date, slot, slotLabel, items, onClose, onAddRecipe, onA
           </button>
           <button
             type="button"
+            aria-label="Ajouter une note"
             onClick={() => setDraft({ key: Date.now(), tempId: null })}
             className={`${addButtonClass} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus-visible:ring-amber-800`}
           >
@@ -196,15 +285,7 @@ function MealSheetBody({ date, slot, slotLabel, items, onClose, onAddRecipe, onA
         />
       </div>
 
-      <div className="flex-none px-5 pt-4 pb-6">
-        <button
-          type="button"
-          onClick={onClose}
-          className="h-[52px] w-full rounded-[14px] bg-terracotta-700 text-base font-semibold text-white transition hover:bg-terracotta-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-700 focus-visible:ring-offset-2"
-        >
-          Terminé
-        </button>
-      </div>
+      {footer}
     </>
   )
 }

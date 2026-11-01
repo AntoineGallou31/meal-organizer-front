@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
+import clsx from 'clsx'
 import dayjs from 'dayjs'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
@@ -13,7 +14,8 @@ import {
   buildWeek,
   countPlannedMeals,
   formatSlotShort,
-  getErrorMessage,
+  getErrorNotice,
+  getItemLabel,
   isSlotKey,
   mealPlanQueryOptions,
   MEALS_PER_WEEK,
@@ -38,19 +40,35 @@ export default function CalendarPage() {
 
   const mealPlanQuery = useQuery(mealPlanQueryOptions(currentWeek))
 
-  const [error, setError] = useState(null)
-  const showError = useCallback((cause) => setError({ id: Date.now(), message: getErrorMessage(cause) }), [])
+  // Message du bandeau autre que le retrait annulable : erreur ou confirmation
+  const [message, setMessage] = useState(null)
+  const showError = useCallback(
+    (cause) => setMessage({ id: Date.now(), type: 'error', ...getErrorNotice(cause) }),
+    [],
+  )
   useEffect(() => {
-    if (!error) return undefined
-    const timer = setTimeout(() => setError(null), UNDO_DELAY_MS)
+    if (!message) return undefined
+    const timer = setTimeout(() => setMessage(null), UNDO_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [error])
+  }, [message])
 
-  const { addItem, updateNote, removeItem, removeItemOnExit } = useMealPlanMutations({ onError: showError })
+  const { addItem, transferItem, updateNote, removeItem, removeItemOnExit } = useMealPlanMutations({
+    onError: showError,
+  })
   const { pendingItem, hiddenIds, remove, undo } = usePendingRemoval({ removeItem, removeItemOnExit })
   const removeWithUndo = (item) => {
-    setError(null)
+    setMessage(null)
     remove(item)
+  }
+
+  const handleTransfer = ({ item, date, slot, mode }) => {
+    transferItem({ item, date, slot, move: mode === 'move' })
+    setMessage({
+      id: Date.now(),
+      type: 'info',
+      title: `${getItemLabel(item)} ${mode === 'move' ? 'déplacé' : 'dupliqué'}`,
+      detail: `Vers ${formatSlotShort(date, slot).toLowerCase()}`,
+    })
   }
 
   // Masque l'item en attente d'annulation et ceux dont la suppression est en vol
@@ -73,15 +91,14 @@ export default function CalendarPage() {
   )
   const plannedCount = countPlannedMeals(days)
 
-  const notice = error
-    ? { type: 'error', title: error.message, detail: "Le planning n'a pas été modifié" }
-    : pendingItem
-      ? {
-          type: 'undo',
-          title: pendingItem.type === 'note' ? 'Note retirée' : `${pendingItem.recipe?.title ?? 'Recette'} retiré`,
-          detail: formatSlotShort(pendingItem.date, pendingItem.slot),
-        }
-      : null
+  const undoNotice = pendingItem
+    ? {
+        type: 'undo',
+        title: pendingItem.type === 'note' ? 'Note retirée' : `${getItemLabel(pendingItem)} retiré`,
+        detail: formatSlotShort(pendingItem.date, pendingItem.slot),
+      }
+    : null
+  const notice = message ?? undoNotice
 
   const sheetTarget = useMemo(() => {
     if (!isSlotKey(openSlot) || !days.some((day) => day.date === openDate)) return null
@@ -118,8 +135,9 @@ export default function CalendarPage() {
     navigate(`/recipes?${params.toString()}`)
   }
 
+  // La marge basse laisse défiler la dernière ligne au-dessus du bandeau tant qu'il est affiché
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className={clsx('mx-auto w-full max-w-xl', notice && !sheetTarget && 'pb-20')}>
       <WeekHeader
         week={currentWeek}
         isCurrentWeek={isCurrentWeek}
@@ -147,18 +165,19 @@ export default function CalendarPage() {
         days={days}
         notice={notice}
         onUndo={undo}
-        onDismissNotice={() => setError(null)}
+        onDismissNotice={() => setMessage(null)}
         onClose={closeSheet}
         onAddRecipe={openRecipePicker}
         onAddItem={addItem}
         onUpdateNote={updateNote}
         onRemoveItem={removeWithUndo}
+        onTransferItem={handleTransfer}
       />
 
       <UndoSnackbar
         notice={sheetTarget ? null : notice}
         onUndo={undo}
-        onDismiss={() => setError(null)}
+        onDismiss={() => setMessage(null)}
         className="fixed inset-x-4 bottom-[calc(80px+max(20px,env(safe-area-inset-bottom)))] z-40 mx-auto max-w-lg"
       />
     </div>

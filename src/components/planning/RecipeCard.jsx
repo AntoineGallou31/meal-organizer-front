@@ -1,6 +1,6 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import clsx from 'clsx'
-import { BookOpen, Clock, Ellipsis, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, BookOpen, Clock, Copy, Ellipsis, Trash2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatRecipeMeta } from '../../lib/mealPlan'
 import RecipeThumb from './RecipeThumb'
@@ -8,7 +8,7 @@ import RecipeThumb from './RecipeThumb'
 const menuItemClass =
   'flex h-11 cursor-pointer select-none items-center gap-3 rounded-xl px-3 text-sm font-medium outline-none data-[disabled]:cursor-default data-[disabled]:opacity-50'
 
-export default function RecipeCard({ item, pending = false, onRemove }) {
+export default function RecipeCard({ item, pending = false, actionsId, onMove, onDuplicate, onRemove }) {
   const navigate = useNavigate()
   const recipe = item.recipe
   const title = recipe?.title ?? 'Recette'
@@ -53,6 +53,7 @@ export default function RecipeCard({ item, pending = false, onRemove }) {
         <DropdownMenu.Trigger asChild disabled={pending}>
           <button
             type="button"
+            id={actionsId}
             aria-label={`Actions pour ${title}`}
             className="flex size-11 flex-none items-center justify-center rounded-full text-sage-500 transition hover:bg-sage-100 hover:text-sage-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-700 disabled:opacity-50"
           >
@@ -73,6 +74,14 @@ export default function RecipeCard({ item, pending = false, onRemove }) {
             >
               <BookOpen size={18} aria-hidden="true" className="text-sage-500" />
               Voir la recette
+            </DropdownMenu.Item>
+            <DropdownMenu.Item onSelect={onMove} className={clsx(menuItemClass, 'text-sage-900 data-[highlighted]:bg-sage-100')}>
+              <ArrowRightLeft size={18} aria-hidden="true" className="text-sage-500" />
+              Déplacer…
+            </DropdownMenu.Item>
+            <DropdownMenu.Item onSelect={onDuplicate} className={clsx(menuItemClass, 'text-sage-900 data-[highlighted]:bg-sage-100')}>
+              <Copy size={18} aria-hidden="true" className="text-sage-500" />
+              Dupliquer…
             </DropdownMenu.Item>
             <DropdownMenu.Separator className="mx-2 my-1 h-px bg-sage-100" />
             <DropdownMenu.Item

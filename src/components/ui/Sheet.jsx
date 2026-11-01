@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import clsx from 'clsx'
 
@@ -13,6 +14,9 @@ export default function Sheet({
   title = 'Dialogue',
   children,
 }) {
+  // Sans Dialog.Trigger, Radix ne rend pas le focus à l'élément qui a ouvert le panneau
+  const openerRef = useRef(null)
+
   return (
     <Dialog.Root
       open={opened}
@@ -28,6 +32,17 @@ export default function Sheet({
         />
         <Dialog.Content
           aria-describedby={undefined}
+          onOpenAutoFocus={() => {
+            openerRef.current = document.activeElement
+          }}
+          onCloseAutoFocus={(event) => {
+            const opener = openerRef.current
+            openerRef.current = null
+            if (opener && opener !== document.body && opener.isConnected) {
+              event.preventDefault()
+              opener.focus()
+            }
+          }}
           className={clsx(
             'fixed inset-x-0 bottom-0 z-50 outline-none data-[state=open]:animate-sheet-up data-[state=closed]:animate-sheet-down',
             surfaceClassName,

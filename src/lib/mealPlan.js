@@ -164,8 +164,12 @@ function capitalize(text) {
 }
 
 // Message court affiché dans le bandeau quand une écriture échoue
-export function getErrorMessage(error) {
-  if (error?.details?.code === 'DEMO_READ_ONLY') return 'Modification désactivée sur la démo'
-  if (error instanceof TypeError) return 'Pas de connexion au serveur'
-  return "La modification n'a pas pu être enregistrée"
+export function getErrorNotice(error) {
+  if (error?.partialMove) {
+    return { title: 'Déplacement incomplet', detail: "La recette est restée aussi dans le repas d'origine" }
+  }
+  const detail = "Le planning n'a pas été modifié"
+  if (error?.details?.code === 'DEMO_READ_ONLY') return { title: 'Modification désactivée sur la démo', detail }
+  if (error instanceof TypeError) return { title: 'Pas de connexion au serveur', detail }
+  return { title: "La modification n'a pas pu être enregistrée", detail }
 }
