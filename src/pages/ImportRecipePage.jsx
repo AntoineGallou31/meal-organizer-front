@@ -110,7 +110,7 @@ export default function ImportRecipePage() {
       <Navbar
         title="Importer une recette"
         left={
-          <Button clear small onClick={() => navigate('/recipes/new')} title="Retour">
+          <Button clear small onClick={() => navigate('/recipes')} title="Retour">
             <ChevronLeft size={30} />
           </Button>
         }

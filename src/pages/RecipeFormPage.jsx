@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, LoaderCircle, Upload } from 'lucide-react'
+import { ChevronLeft, LoaderCircle } from 'lucide-react'
 import {
   Block,
   BlockTitle,
@@ -296,9 +296,6 @@ export default function RecipeFormPage() {
           <Button clear small onClick={() => navigate(isEdit ? `/recipes/${id}` : '/recipes')} title="Retour">
             <ChevronLeft size={30} />
           </Button>
-        }
-        right={
-            <Upload size={20} onClick={() => navigate('/recipes/import')}/>
         }
       />
 

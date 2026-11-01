@@ -8,16 +8,16 @@ export default function Navbar({ title, left, right, className }) {
         className,
       )}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="flex h-11 min-w-11 items-center justify-start">
           {left ?? <span className="h-11 w-11" aria-hidden="true" />}
         </div>
 
-        <div className="min-w-0 flex-1 pt-0.5 text-center">
+        <div className="min-w-0 pt-0.5 text-center">
           <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">{title}</h1>
         </div>
 
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+        <div className="flex h-11 min-w-11 items-center justify-end">
           {right ?? <span className="h-11 w-11" aria-hidden="true" />}
         </div>
       </div>

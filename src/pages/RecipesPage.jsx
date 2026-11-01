@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Filter, Leaf, Plus, Sparkles, X } from 'lucide-react'
+import { ChevronLeft, Download, Filter, Leaf, Plus, Sparkles, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
@@ -301,11 +301,18 @@ export default function RecipesPage() {
         }
         right={
           selectionMode ? null : (
-            <Link to="/recipes/new">
-              <Button clear small title="Ajouter une recette" className="rounded-full">
-                <Plus size={30} />
-              </Button>
-            </Link>
+            <div className="flex items-center">
+              <Link to="/recipes/import">
+                <Button clear small title="Importer une recette" className="rounded-full">
+                  <Download size={26} />
+                </Button>
+              </Link>
+              <Link to="/recipes/new">
+                <Button clear small title="Ajouter une recette" className="rounded-full">
+                  <Plus size={30} />
+                </Button>
+              </Link>
+            </div>
           )
         }
       />
