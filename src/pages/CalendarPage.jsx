@@ -1,24 +1,18 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
 import MealSheet from '../components/planning/MealSheet'
+import useMealPlanMutations from '../components/planning/useMealPlanMutations'
 import WeekGrid from '../components/planning/WeekGrid'
 import WeekHeader from '../components/planning/WeekHeader'
-import { api } from '../lib/api'
-import { buildWeek, countPlannedMeals, isSlotKey, MEALS_PER_WEEK } from '../lib/mealPlan'
+import { buildWeek, countPlannedMeals, isSlotKey, mealPlanQueryOptions, MEALS_PER_WEEK } from '../lib/mealPlan'
 import { getWeekDays, getWeekKey } from '../lib/week'
-
-function mealPlanQueryOptions(weekKey) {
-  return {
-    queryKey: ['meal-plan', weekKey],
-    queryFn: () => api.getMealPlan(weekKey),
-  }
-}
 
 export default function CalendarPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const weekParam = searchParams.get('week')
   // Créneau dont le panneau est ouvert : gardé dans l'URL pour le rouvrir au retour
@@ -30,15 +24,15 @@ export default function CalendarPage() {
     const parsed = weekParam ? dayjs(weekParam) : null
     return parsed?.isValid() ? parsed : dayjs()
   }, [weekParam])
-  const weekKey = getWeekKey(currentWeek)
-  const isCurrentWeek = weekKey === getWeekKey(dayjs())
+  const isCurrentWeek = getWeekKey(currentWeek) === getWeekKey(dayjs())
 
-  const mealPlanQuery = useQuery(mealPlanQueryOptions(weekKey))
+  const mealPlanQuery = useQuery(mealPlanQueryOptions(currentWeek))
+  const { addItem, updateNote, removeItem } = useMealPlanMutations()
 
   // Précharge les semaines voisines pour que la navigation soit instantanée
   useEffect(() => {
     for (const offset of [-1, 1]) {
-      queryClient.prefetchQuery(mealPlanQueryOptions(getWeekKey(currentWeek.add(offset, 'week'))))
+      queryClient.prefetchQuery(mealPlanQueryOptions(currentWeek.add(offset, 'week')))
     }
   }, [queryClient, currentWeek])
 
@@ -77,6 +71,12 @@ export default function CalendarPage() {
   const openSheet = (date, slot) => updateParams({ week: currentWeek.format('YYYY-MM-DD'), date, slot })
   const closeSheet = () => updateParams({ date: null, slot: null })
 
+  // Sélecteur de recette existant : il crée l'item puis revient ici, où le panneau se rouvre
+  const openRecipePicker = (date, slot) => {
+    const params = new URLSearchParams({ mode: 'select', date, slot })
+    navigate(`/recipes?${params.toString()}`)
+  }
+
   return (
     <div className="mx-auto w-full max-w-xl">
       <WeekHeader
@@ -101,7 +101,15 @@ export default function CalendarPage() {
         <WeekGrid days={days} loading={mealPlanQuery.isPending} onOpenSlot={openSheet} />
       )}
 
-      <MealSheet target={sheetTarget} onClose={closeSheet} />
+      <MealSheet
+        target={sheetTarget}
+        days={days}
+        onClose={closeSheet}
+        onAddRecipe={openRecipePicker}
+        onAddItem={addItem}
+        onUpdateNote={updateNote}
+        onRemoveItem={removeItem}
+      />
     </div>
   )
 }

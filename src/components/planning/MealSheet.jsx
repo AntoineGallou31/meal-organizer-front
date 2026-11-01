@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import dayjs from 'dayjs'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { Sheet } from '../ui'
-import { formatDayLong, getSlotLabel } from '../../lib/mealPlan'
+import { formatDayLong, getSlotItems, getSlotLabel, isPendingItem, splitItems } from '../../lib/mealPlan'
+import NoteField from './NoteField'
+import RecipeCard from './RecipeCard'
+import SeasonIdeas from './SeasonIdeas'
 
 const SHEET_SURFACE =
   'flex h-[min(760px,92dvh)] flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_-8px_30px_rgba(15,23,42,0.12)]'
 
-export default function MealSheet({ target, onClose }) {
+const addButtonClass =
+  'flex h-12 items-center justify-center gap-2 rounded-[14px] border px-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+
+export default function MealSheet({ target, days, onClose, onAddRecipe, onAddItem, onUpdateNote, onRemoveItem }) {
   // Garde le dernier créneau affiché pour que le contenu reste visible pendant l'animation de fermeture
   const [shownTarget, setShownTarget] = useState(target)
   if (target && (target.date !== shownTarget?.date || target.slot !== shownTarget?.slot)) {
@@ -18,6 +24,7 @@ export default function MealSheet({ target, onClose }) {
   const isToday = current ? dayjs(current.date).isSame(dayjs(), 'day') : false
   const dayLabel = current ? formatDayLong(current.date) : ''
   const slotLabel = current ? getSlotLabel(current.slot) : ''
+  const items = current ? getSlotItems(days.find((day) => day.date === current.date), current.slot) : []
 
   return (
     <Sheet
@@ -49,7 +56,125 @@ export default function MealSheet({ target, onClose }) {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4" />
+      {current ? (
+        <MealSheetBody
+          // Repart d'un état vierge (brouillon de note…) à chaque créneau
+          key={`${current.date}-${current.slot}`}
+          date={current.date}
+          slot={current.slot}
+          slotLabel={slotLabel}
+          items={items}
+          onClose={onClose}
+          onAddRecipe={onAddRecipe}
+          onAddItem={onAddItem}
+          onUpdateNote={onUpdateNote}
+          onRemoveItem={onRemoveItem}
+        />
+      ) : null}
+    </Sheet>
+  )
+}
+
+function MealSheetBody({ date, slot, slotLabel, items, onClose, onAddRecipe, onAddItem, onUpdateNote, onRemoveItem }) {
+  const menuTitleId = useId()
+  // Note en cours de saisie. Une fois validée, elle reste affichée (grisée) jusqu'à ce que
+  // l'item optimiste soit rendu à sa place : sans ça, le contenu remonterait un instant
+  // et le tap qui a provoqué le blur pourrait tomber à côté de son bouton.
+  const [draft, setDraft] = useState(null)
+  if (draft?.tempId && items.some((item) => item.id === draft.tempId)) {
+    setDraft(null)
+  }
+  const { recipes, notes } = splitItems(items)
+  const excludedRecipeIds = new Set(recipes.map((item) => item.recipeId ?? item.recipe?.id))
+  const menuTitle =
+    items.length === 0 ? 'Au menu' : `Au menu · ${items.length} ${items.length > 1 ? 'éléments' : 'élément'}`
+
+  const handleNoteCommit = (item, text) => {
+    if (text === (item.note ?? '').trim()) return
+    if (text === '') {
+      onRemoveItem(item)
+    } else {
+      onUpdateNote(item, text)
+    }
+  }
+
+  const handleDraftCommit = (text) => {
+    if (!text) {
+      setDraft(null)
+      return
+    }
+    const tempId = onAddItem({ date, slot, type: 'note', note: text })
+    setDraft((current) => (current ? { ...current, tempId } : current))
+  }
+
+  return (
+    <>
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4 pb-2">
+        <section aria-labelledby={menuTitleId} className="flex flex-col gap-2">
+          <h3 id={menuTitleId} className="text-[11px]/4 font-semibold uppercase tracking-[0.06em] text-sage-500">
+            {menuTitle}
+          </h3>
+
+          {items.length === 0 && draft === null ? (
+            <p className="py-1 text-sm text-sage-500">Rien de prévu pour ce repas.</p>
+          ) : null}
+
+          {recipes.map((item) => (
+            <RecipeCard key={item.id} item={item} pending={isPendingItem(item)} onRemove={() => onRemoveItem(item)} />
+          ))}
+
+          {notes.map((item, index) => (
+            <NoteField
+              // La note repart du texte du cache quand il change (enregistrement, retour arrière)
+              key={`${item.id}:${item.note}`}
+              label={notes.length > 1 ? `Note ${index + 1}` : 'Note'}
+              initialValue={item.note ?? ''}
+              pending={isPendingItem(item)}
+              onCommit={(text) => handleNoteCommit(item, text)}
+              onRemove={() => onRemoveItem(item)}
+            />
+          ))}
+
+          {draft !== null ? (
+            <NoteField
+              key={draft.key}
+              draft
+              autoFocus
+              pending={Boolean(draft.tempId)}
+              label="Nouvelle note"
+              onCommit={handleDraftCommit}
+              onRemove={() => setDraft(null)}
+            />
+          ) : null}
+        </section>
+
+        <div className="grid flex-none grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onAddRecipe(date, slot)}
+            className={`${addButtonClass} border-terracotta-200 bg-terracotta-50 text-terracotta-700 hover:bg-terracotta-100 focus-visible:ring-terracotta-700`}
+          >
+            <Plus size={18} aria-hidden="true" />
+            Recette
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraft({ key: Date.now(), tempId: null })}
+            className={`${addButtonClass} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus-visible:ring-amber-800`}
+          >
+            <Plus size={18} aria-hidden="true" />
+            Note
+          </button>
+        </div>
+
+        <div aria-hidden="true" className="h-px flex-none bg-sage-100" />
+
+        <SeasonIdeas
+          slotLabel={slotLabel}
+          excludedRecipeIds={excludedRecipeIds}
+          onAdd={(recipe) => onAddItem({ date, slot, type: 'recipe', recipe })}
+        />
+      </div>
 
       <div className="flex-none px-5 pt-4 pb-6">
         <button
@@ -60,6 +185,6 @@ export default function MealSheet({ target, onClose }) {
           Terminé
         </button>
       </div>
-    </Sheet>
+    </>
   )
 }
