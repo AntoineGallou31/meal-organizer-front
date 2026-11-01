@@ -161,9 +161,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
-  removeMealPlanItem: ({ id }) =>
+  // keepalive : la requête aboutit même si la page se ferme juste après
+  removeMealPlanItem: ({ id, keepalive = false }) =>
     apiRequest(`/api/meal-plan/items/${id}`, {
       method: 'DELETE',
+      keepalive,
     }),
   clearMealSlot: ({ date, slot }) =>
     apiRequest(`/api/meal-plan/${date}/${slot}`, {

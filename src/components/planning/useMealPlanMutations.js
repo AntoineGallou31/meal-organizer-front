@@ -11,6 +11,17 @@ import {
 } from '../../lib/mealPlan'
 
 const MUTATION_KEY = ['meal-plan']
+// Permet de masquer les items dont la suppression est en vol (useMutationState)
+export const REMOVE_MUTATION_KEY = ['meal-plan', 'remove']
+
+// Un 404 veut dire que l'item est déjà supprimé : ce n'est pas un échec du retrait
+async function deleteItem(id, options = {}) {
+  try {
+    await api.removeMealPlanItem({ id, ...options })
+  } catch (error) {
+    if (error?.status !== 404) throw error
+  }
+}
 
 // Créations, modifications et suppressions d'items du planning, avec mise à jour
 // optimiste du cache ['meal-plan', weekKey] et retour arrière ciblé en cas d'erreur.
@@ -74,8 +85,8 @@ export default function useMealPlanMutations({ onError } = {}) {
   })
 
   const removeMutation = useMutation({
-    mutationKey: MUTATION_KEY,
-    mutationFn: ({ item }) => api.removeMealPlanItem({ id: item.id }),
+    mutationKey: REMOVE_MUTATION_KEY,
+    mutationFn: ({ item }) => deleteItem(item.id),
     onMutate: async ({ item }) => {
       const queryKey = await prepare(item.date)
       queryClient.setQueryData(queryKey, (data) => removeItemFromWeek(data, item.id))
@@ -105,9 +116,22 @@ export default function useMealPlanMutations({ onError } = {}) {
     return tempItem.id
   }
 
+  // Page masquée ou fermée : la requête part tout de suite, sans attendre onMutate,
+  // et keepalive lui donne une chance d'aboutir après la fermeture
+  const removeItemOnExit = (item, onDone) => {
+    const queryKey = getMealPlanKey(item.date)
+    queryClient.setQueryData(queryKey, (data) => removeItemFromWeek(data, item.id))
+    deleteItem(item.id, { keepalive: true }).then(onDone, (error) => {
+      queryClient.setQueryData(queryKey, (data) => addItemToWeek(data, item))
+      onDone?.()
+      onError?.(error)
+    })
+  }
+
   return {
     addItem,
     updateNote: (item, note) => updateMutation.mutate({ item, note }),
     removeItem: (item) => removeMutation.mutate({ item }),
+    removeItemOnExit,
   }
 }

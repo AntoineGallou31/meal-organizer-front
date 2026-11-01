@@ -28,16 +28,17 @@ export function getSlotItems(day, slot) {
   return Array.isArray(list) ? list : []
 }
 
-// Associe les items du planning aux 7 jours de la semaine affichée
-export function buildWeek(weekDays, data) {
+// Associe les items du planning aux 7 jours de la semaine affichée, sans ceux en cours de retrait
+export function buildWeek(weekDays, data, hiddenIds = new Set()) {
   const daysByDate = new Map(getDaysList(data).map((day) => [day.date, day]))
+  const visible = (items) => (hiddenIds.size ? items.filter((item) => !hiddenIds.has(item.id)) : items)
 
   return weekDays.map((day) => {
     const apiDay = daysByDate.get(day.date)
     return {
       ...day,
-      lunchItems: getSlotItems(apiDay, 'lunch'),
-      dinnerItems: getSlotItems(apiDay, 'dinner'),
+      lunchItems: visible(getSlotItems(apiDay, 'lunch')),
+      dinnerItems: visible(getSlotItems(apiDay, 'dinner')),
     }
   })
 }
@@ -150,6 +151,21 @@ export function formatDayShort(date) {
 
 // "Mardi 3 novembre"
 export function formatDayLong(date) {
-  const label = dayjs(date).format('dddd D MMMM')
-  return label.charAt(0).toUpperCase() + label.slice(1)
+  return capitalize(dayjs(date).format('dddd D MMMM'))
+}
+
+// "Mardi 3 · midi"
+export function formatSlotShort(date, slot) {
+  return `${capitalize(formatDayShort(date))} · ${getSlotLabel(slot).toLowerCase()}`
+}
+
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+// Message court affiché dans le bandeau quand une écriture échoue
+export function getErrorMessage(error) {
+  if (error?.details?.code === 'DEMO_READ_ONLY') return 'Modification désactivée sur la démo'
+  if (error instanceof TypeError) return 'Pas de connexion au serveur'
+  return "La modification n'a pas pu être enregistrée"
 }

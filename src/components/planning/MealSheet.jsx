@@ -6,6 +6,7 @@ import { formatDayLong, getSlotItems, getSlotLabel, isPendingItem, splitItems } 
 import NoteField from './NoteField'
 import RecipeCard from './RecipeCard'
 import SeasonIdeas from './SeasonIdeas'
+import UndoSnackbar from './UndoSnackbar'
 
 const SHEET_SURFACE =
   'flex h-[min(760px,92dvh)] flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_-8px_30px_rgba(15,23,42,0.12)]'
@@ -13,7 +14,18 @@ const SHEET_SURFACE =
 const addButtonClass =
   'flex h-12 items-center justify-center gap-2 rounded-[14px] border px-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
 
-export default function MealSheet({ target, days, onClose, onAddRecipe, onAddItem, onUpdateNote, onRemoveItem }) {
+export default function MealSheet({
+  target,
+  days,
+  notice,
+  onUndo,
+  onDismissNotice,
+  onClose,
+  onAddRecipe,
+  onAddItem,
+  onUpdateNote,
+  onRemoveItem,
+}) {
   // Garde le dernier créneau affiché pour que le contenu reste visible pendant l'animation de fermeture
   const [shownTarget, setShownTarget] = useState(target)
   if (target && (target.date !== shownTarget?.date || target.slot !== shownTarget?.slot)) {
@@ -71,6 +83,14 @@ export default function MealSheet({ target, days, onClose, onAddRecipe, onAddIte
           onRemoveItem={onRemoveItem}
         />
       ) : null}
+
+      {/* Hors du panneau, le bandeau serait inerte tant que la modale est ouverte */}
+      <UndoSnackbar
+        notice={target ? notice : null}
+        onUndo={onUndo}
+        onDismiss={onDismissNotice}
+        className="absolute inset-x-4 bottom-[100px] z-10"
+      />
     </Sheet>
   )
 }
