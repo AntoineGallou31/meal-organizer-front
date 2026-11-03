@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
-import clsx from 'clsx'
 import dayjs from 'dayjs'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
@@ -12,13 +11,11 @@ import WeekGrid from '../components/planning/WeekGrid'
 import WeekHeader from '../components/planning/WeekHeader'
 import {
   buildWeek,
-  countPlannedMeals,
   formatSlotShort,
   getErrorNotice,
   getItemLabel,
   isSlotKey,
   mealPlanQueryOptions,
-  MEALS_PER_WEEK,
 } from '../lib/mealPlan'
 import { getWeekDays, getWeekKey } from '../lib/week'
 
@@ -89,7 +86,6 @@ export default function CalendarPage() {
     () => buildWeek(getWeekDays(currentWeek), mealPlanQuery.data, new Set(hiddenKey ? hiddenKey.split('|') : [])),
     [currentWeek, mealPlanQuery.data, hiddenKey],
   )
-  const plannedCount = countPlannedMeals(days)
 
   const undoNotice = pendingItem
     ? {
@@ -135,30 +131,33 @@ export default function CalendarPage() {
     navigate(`/recipes?${params.toString()}`)
   }
 
-  // La marge basse laisse défiler la dernière ligne au-dessus du bandeau tant qu'il est affiché
   return (
-    <div className={clsx('mx-auto w-full max-w-xl', notice && !sheetTarget && 'pb-20')}>
-      <WeekHeader
-        week={currentWeek}
-        isCurrentWeek={isCurrentWeek}
-        plannedCount={plannedCount}
-        totalCount={MEALS_PER_WEEK}
-        loading={mealPlanQuery.isPending}
-        onPrevious={() => goToWeek(currentWeek.subtract(1, 'week'))}
-        onNext={() => goToWeek(currentWeek.add(1, 'week'))}
-        onToday={() => goToWeek(dayjs())}
-      />
+    <div className="mx-auto w-full max-w-xl">
+      {/* La semaine occupe toute la hauteur jusqu'à la barre de navigation : les lignes s'étirent */}
+      <div className="flex min-h-[calc(100dvh-var(--bottom-nav-space))] flex-col">
+        <WeekHeader
+          week={currentWeek}
+          isCurrentWeek={isCurrentWeek}
+          onPrevious={() => goToWeek(currentWeek.subtract(1, 'week'))}
+          onNext={() => goToWeek(currentWeek.add(1, 'week'))}
+          onToday={() => goToWeek(dayjs())}
+        />
 
-      {mealPlanQuery.isError ? (
-        <div className="px-4 pt-3.5">
-          <ErrorState
-            message={`Impossible de charger le planning. ${mealPlanQuery.error?.message ?? ''}`.trim()}
-            onRetry={() => mealPlanQuery.refetch()}
-          />
-        </div>
-      ) : (
-        <WeekGrid days={days} loading={mealPlanQuery.isPending} onOpenSlot={openSheet} />
-      )}
+        {mealPlanQuery.isError ? (
+          <div className="px-4 pt-3.5">
+            <ErrorState
+              message={`Impossible de charger le planning. ${mealPlanQuery.error?.message ?? ''}`.trim()}
+              onRetry={() => mealPlanQuery.refetch()}
+            />
+          </div>
+        ) : (
+          <WeekGrid days={days} loading={mealPlanQuery.isPending} onOpenSlot={openSheet} />
+        )}
+      </div>
+
+      {/* Laisse défiler la dernière ligne au-dessus du bandeau tant qu'il est affiché,
+          sans réduire la grille (les lignes ne changent pas de taille) */}
+      {notice && !sheetTarget ? <div aria-hidden="true" className="h-20" /> : null}
 
       <MealSheet
         target={sheetTarget}

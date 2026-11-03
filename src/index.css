@@ -66,6 +66,9 @@
     --app-bg-start: #ffffff;
     --app-bg-mid: #f8fafc;
     --app-bg-end: #eef2f7;
+    /* Espace réservé sous les pages : barre de navigation (64 px + zone de sécurité,
+       20 px minimum) et 12 px d'écart */
+    --bottom-nav-space: calc(76px + max(20px, env(safe-area-inset-bottom)));
   }
 
   html {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
+import { removeItemFromWeek } from '../../lib/mealPlan'
 
 export const UNDO_DELAY_MS = 5000
 
@@ -53,20 +54,31 @@ export default function usePendingRemoval({ removeItem, removeItemOnExit }) {
     if (recoveryStartedRef.current || recoveringIds.length === 0) return
     recoveryStartedRef.current = true
 
-    Promise.allSettled(
-      recoveringIds.map((id) =>
-        api.removeMealPlanItem({ id }).then(
-          () => forgetId(id),
-          (error) => {
+    const recover = async () => {
+      const results = await Promise.all(
+        recoveringIds.map((id) =>
+          api.removeMealPlanItem({ id }).then(
+            () => true,
             // 404 : déjà supprimé
-            if (error?.status === 404) forgetId(id)
-          },
+            (error) => error?.status === 404,
+          ),
         ),
-      ),
-    ).then(() => {
-      setRecoveringIds([])
-      queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
-    })
+      )
+      const removedIds = recoveringIds.filter((_, index) => results[index])
+      removedIds.forEach(forgetId)
+
+      // Un chargement lancé avant la suppression renverrait encore ces items : on l'annule,
+      // on les retire du cache et on recharge avant de les démasquer
+      await queryClient.cancelQueries({ queryKey: ['meal-plan'] })
+      queryClient.setQueriesData({ queryKey: ['meal-plan'] }, (data) =>
+        removedIds.reduce((week, id) => removeItemFromWeek(week, id), data),
+      )
+      await queryClient.invalidateQueries({ queryKey: ['meal-plan'] })
+
+      // Les échecs restent masqués et seront rejoués au prochain chargement
+      setRecoveringIds(recoveringIds.filter((_, index) => !results[index]))
+    }
+    recover()
   }, [recoveringIds, queryClient])
 
   // Retire l'item en attente de la file et le renvoie

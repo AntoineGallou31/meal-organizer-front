@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 sw.js
+docs/design/planning/maquette-creneau.html
+docs/design/planning/maquette-retrait.html
+docs/design/planning/maquette-semaine.html
+docs/design/planning/SPEC.md

@@ -7,8 +7,6 @@ export const SLOTS = [
   { key: 'dinner', label: 'Soir' },
 ]
 
-export const MEALS_PER_WEEK = 14
-
 export function isSlotKey(value) {
   return SLOTS.some((slot) => slot.key === value)
 }
@@ -41,13 +39,6 @@ export function buildWeek(weekDays, data, hiddenIds = new Set()) {
       dinnerItems: visible(getSlotItems(apiDay, 'dinner')),
     }
   })
-}
-
-export function countPlannedMeals(days) {
-  return days.reduce(
-    (total, day) => total + SLOTS.filter((slot) => getSlotItems(day, slot.key).length > 0).length,
-    0,
-  )
 }
 
 export function splitItems(items) {

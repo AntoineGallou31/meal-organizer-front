@@ -13,7 +13,7 @@ function AppLayout() {
 
   return (
     <>
-      <main className="pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <main className="pb-(--bottom-nav-space)">
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/recipes" element={<RecipesPage />} />
