@@ -13,30 +13,28 @@ export function normalizeText(value) {
     .trim()
 }
 
-// La catégorie « A completer » est reconnue par son nom, sans tenir compte des accents ni de la casse
-export function isIncompleteCategory(category) {
-  return normalizeText(category?.name) === 'a completer'
-}
-
-export function findIncompleteCategory(categories) {
-  return (categories ?? []).find(isIncompleteCategory) ?? null
-}
-
-// Dossiers de la page Recettes : catégories non vides, sans « A completer » (déjà en raccourci)
+// Dossiers de la page Recettes : les catégories non vides
 export function getVisibleFolders(categories, sort = 'filled') {
   const byName = (a, b) => String(a.name).localeCompare(String(b.name), 'fr', { sensitivity: 'base' })
   const byCount = (a, b) => b.recipe_count - a.recipe_count || byName(a, b)
 
   return (categories ?? [])
-    .filter((category) => category.recipe_count > 0 && !isIncompleteCategory(category))
+    .filter((category) => category.recipe_count > 0)
     .sort(sort === 'az' ? byName : byCount)
 }
 
-// Dossiers spéciaux, ouverts depuis les raccourcis
+// Dossiers spéciaux, ouverts depuis les raccourcis. `statKey` : compteur de GET /api/recipes/stats.
+// Suggestions : les mêmes recettes que les « Idées de saison » du planning (GET /api/recipes/suggestions).
 export const SPECIAL_FOLDERS = {
+  suggestions: {
+    id: 'suggestions',
+    name: 'Suggestions',
+    color: '#c2410c',
+    statKey: null,
+    description: 'Plats de saison, pas au menu récemment',
+  },
   saison: { id: 'saison', name: 'De saison', color: '#3f6212', statKey: 'seasonal' },
   favoris: { id: 'favoris', name: 'Favoris', color: '#be123c', statKey: 'favorites' },
-  'a-completer': { id: 'a-completer', name: 'À compléter', color: '#92400e', statKey: 'toComplete' },
 }
 
 export function getSpecialFolder(id) {

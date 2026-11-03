@@ -1,7 +1,7 @@
 import { useId, useMemo } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import clsx from 'clsx'
-import { ArrowUpDown, Heart, Leaf, Link2, PencilLine, Plus } from 'lucide-react'
+import { ArrowUpDown, Heart, Leaf, Link2, PencilLine, Plus, Sparkles } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
 import FolderCard from '../components/recipes/FolderCard'
@@ -27,9 +27,9 @@ import {
 } from '../lib/recipes'
 
 const SHORTCUTS = [
+  { folder: SPECIAL_FOLDERS.suggestions, icon: Sparkles, tint: 'bg-terracotta-100 text-terracotta-700' },
   { folder: SPECIAL_FOLDERS.saison, icon: Leaf, tint: 'bg-lime-100 text-lime-800' },
   { folder: SPECIAL_FOLDERS.favoris, icon: Heart, tint: 'bg-rose-100 text-rose-700' },
-  { folder: SPECIAL_FOLDERS['a-completer'], icon: PencilLine, tint: 'bg-amber-100 text-amber-800' },
 ]
 
 const FOLDER_SORT_LABELS = { filled: 'Les plus remplis', az: 'De A à Z' }
@@ -73,7 +73,7 @@ function Shortcuts({ stats, onNavigate }) {
       <ul className="grid grid-cols-3 gap-2">
         {SHORTCUTS.map(({ folder, icon, tint }) => {
           const Icon = icon
-          const count = stats?.[folder.statKey]
+          const count = folder.statKey ? stats?.[folder.statKey] : null
           return (
             <li key={folder.id} className="min-w-0">
               <Link
