@@ -6,6 +6,7 @@ import { ArrowUpDown, ChevronLeft, Download, Filter, Heart, Leaf, Link2, PencilL
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import ErrorState from '../components/ErrorState'
 import FolderCard from '../components/recipes/FolderCard'
+import RecipePicker from '../components/recipes/RecipePicker'
 import RecipeSearchResults from '../components/recipes/RecipeSearchResults'
 import SearchField from '../components/recipes/SearchField'
 import { FOCUS_RING, MENU_CONTENT_CLASS, MENU_ITEM_CLASS } from '../components/recipes/styles'
@@ -19,6 +20,7 @@ import {
   formatRecipeCount,
   FROM_FOLDERS_STATE,
   getFolderPath,
+  getSelection,
   getVisibleFolders,
   isInCurrentMonth,
   pickFallbackColor,
@@ -290,9 +292,9 @@ function FoldersPage() {
 
 export default function RecipesPage() {
   const [searchParams] = useSearchParams()
+  const selection = getSelection(searchParams)
 
-  // L'ancien écran reste utilisé pour choisir une recette depuis le planning
-  return searchParams.get('mode') === 'select' ? <LegacyRecipePicker /> : <FoldersPage />
+  return selection ? <RecipePicker selection={selection} /> : <FoldersPage />
 }
 
 function LegacyRecipePicker() {

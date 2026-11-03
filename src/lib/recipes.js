@@ -1,3 +1,5 @@
+import dayjs from 'dayjs'
+import { getSlotLabel, isSlotKey } from './mealPlan'
 import { getCurrentMonth } from './seasonality'
 
 export const RECIPES_PAGE_SIZE = 10
@@ -61,12 +63,26 @@ export function serializeFolderFilters(active) {
 // revient alors en arrière, ce qui retrouve la liste à la même position
 export const FROM_FOLDERS_STATE = { fromFolders: true }
 
-// Paramètres du mode sélection (choix d'une recette depuis le planning), à garder d'une page à l'autre
+// Mode sélection (choix d'une recette depuis le planning) : `?mode=select&date=YYYY-MM-DD&slot=lunch|dinner`.
+// Renvoie null hors de ce mode ou si le créneau est invalide. `search` est à garder d'une page à l'autre.
 export function getSelection(searchParams) {
+  if (searchParams.get('mode') !== 'select') return null
+
   const date = searchParams.get('date') ?? ''
   const slot = searchParams.get('slot') ?? ''
-  if (searchParams.get('mode') !== 'select') return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !dayjs(date).isValid() || !isSlotKey(slot)) return null
+
   return { date, slot, search: `?${new URLSearchParams({ mode: 'select', date, slot })}` }
+}
+
+// "mardi soir", pour les libellés « Ajouter … au mardi soir »
+export function formatSlotName({ date, slot }) {
+  return `${dayjs(date).format('dddd')} ${getSlotLabel(slot).toLowerCase()}`
+}
+
+// Planning sur la bonne semaine, avec le panneau du créneau rouvert
+export function getPlanningPath({ date, slot }) {
+  return `/?${new URLSearchParams({ week: date, date, slot })}`
 }
 
 export function formatCount(count, singular, plural = `${singular}s`) {

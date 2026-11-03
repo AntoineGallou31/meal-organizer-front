@@ -3,28 +3,35 @@ import { CalendarDays, SquareMenu } from 'lucide-react'
 import clsx from 'clsx'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
+// `remembers` : pages qu'un retour sur l'onglet doit retrouver
 const navItems = [
-  { to: '/', label: 'Planning', icon: CalendarDays },
-  { to: '/recipes', label: 'Recettes', icon: SquareMenu },
+  { to: '/', label: 'Planning', icon: CalendarDays, remembers: (pathname) => pathname === '/' },
+  {
+    to: '/recipes',
+    label: 'Recettes',
+    icon: SquareMenu,
+    remembers: (pathname) => pathname === '/recipes' || pathname.startsWith('/recipes/folder/'),
+  },
 ]
 
-export default function BottomNav() {
+export default function BottomNav({ hidden = false }) {
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
   const lastVisitedRef = useRef({ '/': '/', '/recipes': '/recipes' })
 
   useEffect(() => {
-    // Only remember the exact list route (e.g. "/recipes"), not sub-routes
-    // like "/recipes/:id" or "/recipes/new" — those aren't the tab's landing page.
-    // Also skip the recipe-picker mode (?mode=select, opened from the planning
-    // tab to attach a recipe to a slot) — it's a transient picker, not a state
-    // of the recipes list the user would want to land back on via the tab.
+    // Only remember the tab's landing pages: the recipes list or an opened folder,
+    // not "/recipes/:id" or "/recipes/new". Also skip the recipe-picker mode
+    // (?mode=select, opened from the planning tab to attach a recipe to a slot):
+    // it's a transient picker, not a state the user would want to land back on.
     const isRecipePickerMode = new URLSearchParams(search).get('mode') === 'select'
-    const item = navItems.find((candidate) => candidate.to === pathname)
+    const item = navItems.find((candidate) => candidate.remembers(pathname))
     if (item && !isRecipePickerMode) {
       lastVisitedRef.current[item.to] = `${pathname}${search}`
     }
   }, [pathname, search])
+
+  if (hidden) return null
 
   // An inactive tab brings back the last visited state of that tab. The ref is
   // read here rather than during render, so the link's href stays the tab root.

@@ -4,11 +4,13 @@ import { ChevronLeft } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import FolderFilters from '../components/recipes/FolderFilters'
 import FolderMenu from '../components/recipes/FolderMenu'
+import PickErrorToast from '../components/recipes/PickErrorToast'
 import RecipeResults from '../components/recipes/RecipeResults'
 import SearchField from '../components/recipes/SearchField'
 import { FOCUS_RING, ROUND_BUTTON_CLASS } from '../components/recipes/styles'
 import useCategories from '../hooks/useCategories'
 import useDebouncedValue from '../hooks/useDebouncedValue'
+import usePickRecipe from '../hooks/usePickRecipe'
 import useRecipeStats from '../hooks/useRecipeStats'
 import useScrollRestoration from '../hooks/useScrollRestoration'
 import useUpdateSearchParams from '../hooks/useUpdateSearchParams'
@@ -18,6 +20,8 @@ import {
   FOLDER_FILTER_IDS,
   formatListCount,
   formatRecipeCount,
+  formatSlotName,
+  getSelection,
   getSpecialFolder,
   isInCurrentMonth,
   parseFolderFilters,
@@ -72,6 +76,9 @@ export default function RecipeFolderPage() {
   const [searchParams, updateSearchParams] = useUpdateSearchParams()
   const folder = useFolder(folderId)
   const statsQuery = useRecipeStats()
+  // Mode sélection : les cartes ajoutent la recette au créneau du planning
+  const selection = getSelection(searchParams)
+  const pick = usePickRecipe(selection)
   // Une API qui répond aux stats calcule aussi `cookCount` et connaît `cooked=never`
   const apiUpToDate = statsQuery.isSuccess
 
@@ -149,7 +156,13 @@ export default function RecipeFolderPage() {
     seasonBadge: inSeasonList || isInCurrentMonth(recipe),
     // Le tri par popularité calcule les compteurs, même sur une API ancienne
     withCookCount: apiUpToDate || popular,
-    onNavigate: saveScroll,
+    ...(selection
+      ? {
+          onPick: pick.mutate,
+          pickLabel: `Ajouter ${recipe.title} au ${formatSlotName(selection)}`,
+          disabled: pick.isPending,
+        }
+      : { onNavigate: saveScroll }),
   })
 
   const emptyFolderMessage =
@@ -177,13 +190,13 @@ export default function RecipeFolderPage() {
     <p className="text-sm text-sage-500">{emptyFolderMessage}</p>
   )
 
-  const canEdit = Boolean(folder.category && !folder.category.is_default)
+  const canEdit = Boolean(folder.category && !folder.category.is_default && !selection)
   const showList = !folder.notFound && folder.filter !== 'empty'
 
   return (
-    <div className="mx-auto w-full max-w-xl pb-4">
+    <div aria-busy={pick.isPending} className="mx-auto w-full max-w-xl pb-4">
       <header className="flex items-center gap-3 px-4 pt-4">
-        <Link to="/recipes" onClick={handleBack} aria-label="Retour aux dossiers" className={clsx(ROUND_BUTTON_CLASS, FOCUS_RING)}>
+        <Link to={`/recipes${selection?.search ?? ''}`} onClick={handleBack} aria-label="Retour aux dossiers" className={clsx(ROUND_BUTTON_CLASS, FOCUS_RING)}>
           <ChevronLeft size={20} aria-hidden="true" />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-px">
@@ -233,6 +246,8 @@ export default function RecipeFolderPage() {
           />
         )}
       </section>
+
+      <PickErrorToast error={pick.error} />
     </div>
   )
 }
