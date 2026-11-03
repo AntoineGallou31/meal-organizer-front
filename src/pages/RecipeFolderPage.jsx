@@ -2,29 +2,37 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { ChevronLeft } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import FolderFilters from '../components/recipes/FolderFilters'
+import FolderMenu from '../components/recipes/FolderMenu'
 import RecipeResults from '../components/recipes/RecipeResults'
+import SearchField from '../components/recipes/SearchField'
 import { FOCUS_RING, ROUND_BUTTON_CLASS } from '../components/recipes/styles'
 import useCategories from '../hooks/useCategories'
+import useDebouncedValue from '../hooks/useDebouncedValue'
 import useRecipeStats from '../hooks/useRecipeStats'
 import useScrollRestoration from '../hooks/useScrollRestoration'
+import useUpdateSearchParams from '../hooks/useUpdateSearchParams'
 import { api } from '../lib/api'
 import {
   findIncompleteCategory,
+  FOLDER_FILTER_IDS,
   formatListCount,
   formatRecipeCount,
   getSpecialFolder,
   isInCurrentMonth,
+  parseFolderFilters,
   RECIPES_PAGE_SIZE,
+  serializeFolderFilters,
 } from '../lib/recipes'
 import { getCurrentMonth } from '../lib/seasonality'
 
 // Dossier affiché : une catégorie, ou l'un des dossiers spéciaux (saison, favoris, à compléter).
-// `filter` vaut null tant qu'il n'est pas connu, et `empty` quand le dossier n'a rien à charger.
+// `filter` vaut null tant qu'il n'est pas connu, et 'empty' quand le dossier n'a rien à charger.
 function useFolder(folderId) {
   const categoriesQuery = useCategories()
-  const statsQuery = useRecipeStats()
   const special = getSpecialFolder(folderId)
   const categories = categoriesQuery.data
+  const stats = useRecipeStats().data
 
   if (special) {
     const incomplete = findIncompleteCategory(categories)
@@ -38,9 +46,9 @@ function useFolder(folderId) {
               ? { categoryId: incomplete.id }
               : 'empty'
             : null
-    const total = statsQuery.data?.[special.statKey] ?? (special.id === 'a-completer' ? incomplete?.recipe_count : null)
+    const total = stats?.[special.statKey] ?? (special.id === 'a-completer' ? incomplete?.recipe_count : null) ?? null
 
-    return { special, name: special.name, color: special.color, filter, total, seasonCount: null, statsQuery }
+    return { special, name: special.name, color: special.color, filter, total, seasonCount: null }
   }
 
   const category = categories?.find((candidate) => candidate.id === folderId) ?? null
@@ -54,7 +62,6 @@ function useFolder(folderId) {
     filter: { categoryId: folderId },
     total: category?.recipe_count ?? null,
     seasonCount: category?.season_count ?? null,
-    statsQuery,
   }
 }
 
@@ -62,10 +69,34 @@ export default function RecipeFolderPage() {
   const { folderId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams, updateSearchParams] = useUpdateSearchParams()
   const folder = useFolder(folderId)
-  const backTo = '/recipes'
+  const statsQuery = useRecipeStats()
+  // Une API qui répond aux stats calcule aussi `cookCount` et connaît `cooked=never`
+  const apiUpToDate = statsQuery.isSuccess
 
-  const filters = folder.filter && folder.filter !== 'empty' ? { ...folder.filter, includeCookCount: true, summary: true } : null
+  const search = searchParams.get('q') ?? ''
+  const term = useDebouncedValue(search.trim(), 250)
+  const filterIds = FOLDER_FILTER_IDS.filter(
+    (id) => !(id === 'saison' && folder.special?.id === 'saison') && !(id === 'jamais' && !apiUpToDate),
+  )
+  const active = parseFolderFilters(searchParams.get('f'), filterIds)
+  const popular = searchParams.get('sort') === 'popular'
+  const hasFilters = active.size > 0 || popular || search.trim() !== ''
+
+  const baseFilter = folder.filter && folder.filter !== 'empty' ? folder.filter : null
+  const filters = baseFilter
+    ? {
+        ...baseFilter,
+        search: term || undefined,
+        month: baseFilter.month ?? (active.has('saison') ? getCurrentMonth().value : undefined),
+        prepMax: active.has('rapide') ? 30 : undefined,
+        cooked: active.has('jamais') ? 'never' : undefined,
+        sort: popular ? 'popular' : undefined,
+        includeCookCount: true,
+        summary: true,
+      }
+    : null
 
   const recipesQuery = useInfiniteQuery({
     queryKey: ['recipes', 'folder', folderId, filters],
@@ -84,6 +115,27 @@ export default function RecipeFolderPage() {
     .filter(Boolean)
     .join(' · ')
 
+  // Total connu seulement sans recherche ni filtre (ou avec le seul filtre de saison, via `season_count`)
+  const onlySeason = active.size === 1 && active.has('saison') && !popular && search.trim() === ''
+  const knownTotal = !hasFilters ? folder.total : onlySeason ? folder.seasonCount : null
+  const qualifier = (plural) =>
+    [
+      active.has('jamais') ? (plural ? 'jamais faites' : 'jamais faite') : null,
+      active.has('saison') ? 'de saison' : null,
+      active.has('rapide') ? 'en moins de 30 min' : null,
+    ]
+      .filter(Boolean)
+      .join(', ')
+
+  const toggleFilter = (id) => {
+    const next = new Set(active)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    updateSearchParams({ f: serializeFolderFilters(next) })
+  }
+
+  const clearFilters = () => updateSearchParams({ q: null, f: null, sort: null })
+
   // Venu de la liste des dossiers : revenir en arrière la retrouve à la même position
   const handleBack = (event) => {
     if (!location.state?.fromFolders) return
@@ -91,22 +143,47 @@ export default function RecipeFolderPage() {
     navigate(-1)
   }
 
+  const inSeasonList = folder.special?.id === 'saison' || active.has('saison')
   const getCardProps = (recipe) => ({
     color: folder.color,
-    seasonBadge: folder.special?.id === 'saison' || isInCurrentMonth(recipe),
-    withCookCount: folder.statsQuery.isSuccess,
+    seasonBadge: inSeasonList || isInCurrentMonth(recipe),
+    // Le tri par popularité calcule les compteurs, même sur une API ancienne
+    withCookCount: apiUpToDate || popular,
     onNavigate: saveScroll,
   })
 
-  const emptyMessage =
+  const emptyFolderMessage =
     folder.special?.id === 'favoris'
       ? 'Pas encore de favori : touche le cœur sur une fiche recette'
       : 'Aucune recette dans ce dossier'
 
+  const emptyState = hasFilters ? (
+    <div className="flex flex-col items-start gap-3">
+      <p role="status" className="text-sm text-sage-500">
+        Aucune recette ne correspond à ces filtres
+      </p>
+      <button
+        type="button"
+        onClick={clearFilters}
+        className={clsx(
+          'h-11 rounded-full border border-sage-200 bg-white px-4 text-sm font-semibold text-sage-900 transition hover:bg-sage-50',
+          FOCUS_RING,
+        )}
+      >
+        Effacer les filtres
+      </button>
+    </div>
+  ) : (
+    <p className="text-sm text-sage-500">{emptyFolderMessage}</p>
+  )
+
+  const canEdit = Boolean(folder.category && !folder.category.is_default)
+  const showList = !folder.notFound && folder.filter !== 'empty'
+
   return (
     <div className="mx-auto w-full max-w-xl pb-4">
       <header className="flex items-center gap-3 px-4 pt-4">
-        <Link to={backTo} onClick={handleBack} aria-label="Retour aux dossiers" className={clsx(ROUND_BUTTON_CLASS, FOCUS_RING)}>
+        <Link to="/recipes" onClick={handleBack} aria-label="Retour aux dossiers" className={clsx(ROUND_BUTTON_CLASS, FOCUS_RING)}>
           <ChevronLeft size={20} aria-hidden="true" />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-px">
@@ -120,18 +197,38 @@ export default function RecipeFolderPage() {
           </h1>
           {subtitle ? <p className="text-xs text-sage-500">{subtitle}</p> : null}
         </div>
+        {canEdit ? <FolderMenu category={folder.category} /> : null}
       </header>
 
-      <section aria-label="Recettes du dossier" className="px-4 pt-3.5">
+      {showList ? (
+        <>
+          <div className="px-4 pt-3.5">
+            <SearchField
+              label={folder.name ? `Rechercher dans ${folder.name}` : 'Rechercher dans ce dossier'}
+              value={search}
+              onChange={(value) => updateSearchParams({ q: value })}
+            />
+          </div>
+          <FolderFilters
+            filterIds={filterIds}
+            active={active}
+            onToggle={toggleFilter}
+            popular={popular}
+            onTogglePopular={() => updateSearchParams({ sort: popular ? null : 'popular' })}
+          />
+        </>
+      ) : null}
+
+      <section aria-label="Recettes du dossier" className="px-4 pt-2.5">
         {folder.notFound ? (
           <p className="text-sm text-sage-500">Ce dossier n’existe plus.</p>
         ) : folder.filter === 'empty' ? (
-          <p className="text-sm text-sage-500">{emptyMessage}</p>
+          <p className="text-sm text-sage-500">{emptyFolderMessage}</p>
         ) : (
           <RecipeResults
             query={recipesQuery}
-            label={(count, hasMore) => formatListCount({ count, hasMore, total: folder.total })}
-            empty={<p className="text-sm text-sage-500">{emptyMessage}</p>}
+            label={(count, hasMore) => formatListCount({ count, hasMore, total: knownTotal, qualifier })}
+            empty={emptyState}
             getCardProps={getCardProps}
           />
         )}

@@ -45,6 +45,18 @@ export function getFolderPath(id, search = '') {
   return `/recipes/folder/${encodeURIComponent(id)}${search}`
 }
 
+// Filtres cumulables d'un dossier, dans l'ordre où ils sont écrits dans l'URL (`?f=saison,rapide,jamais`)
+export const FOLDER_FILTER_IDS = ['saison', 'rapide', 'jamais']
+
+export function parseFolderFilters(value, availableIds = FOLDER_FILTER_IDS) {
+  const requested = new Set(String(value ?? '').split(','))
+  return new Set(availableIds.filter((id) => requested.has(id)))
+}
+
+export function serializeFolderFilters(active) {
+  return FOLDER_FILTER_IDS.filter((id) => active.has(id)).join(',')
+}
+
 // État d'historique posé en ouvrant un dossier depuis la liste : le bouton retour du dossier
 // revient alors en arrière, ce qui retrouve la liste à la même position
 export const FROM_FOLDERS_STATE = { fromFolders: true }
