@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ChevronLeft, Clock3, Flame, Leaf, Pencil, Trash2, Users, MoreVertical } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Clock3, Flame, Heart, Leaf, Pencil, Trash2, Users, MoreVertical } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import {
   Block,
@@ -20,6 +20,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { getUpcomingDays } from '../lib/week'
 import { MONTHS } from '../lib/seasonality'
+
+// Le backend peut ne pas encore connaître les favoris (colonne absente) ou être en mode démo
+function getFavoriteErrorMessage(error) {
+  if (error?.details?.code === 'DEMO_READ_ONLY') return 'Modification désactivée sur la démo'
+  if (error instanceof TypeError) return 'Pas de connexion au serveur'
+  return 'Les favoris ne sont pas disponibles pour le moment'
+}
 
 function parseQuantityToken(token) {
   const trimmed = token.trim()
@@ -84,6 +91,35 @@ export default function RecipeDetailPage() {
     queryFn: () => api.getRecipeById(id),
   })
 
+  // Favori : mise à jour optimiste, annulée avec un message court si l'API refuse
+  const [favoriteError, setFavoriteError] = useState(null)
+  const favoriteMutation = useMutation({
+    mutationFn: (isFavorite) => api.setRecipeFavorite(id, isFavorite),
+    onMutate: async (isFavorite) => {
+      setFavoriteError(null)
+      await queryClient.cancelQueries({ queryKey: ['recipe', id] })
+      const previous = queryClient.getQueryData(['recipe', id])
+      queryClient.setQueryData(['recipe', id], (data) => (data ? { ...data, isFavorite } : data))
+      return { previous }
+    },
+    onError: (error, _isFavorite, context) => {
+      if (context?.previous) queryClient.setQueryData(['recipe', id], context.previous)
+      setFavoriteError({ id: Date.now(), error })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe', id] })
+      queryClient.invalidateQueries({ queryKey: ['recipes-stats'] })
+      // Listes de recettes, dont le dossier Favoris
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+    },
+  })
+
+  useEffect(() => {
+    if (!favoriteError) return undefined
+    const timer = setTimeout(() => setFavoriteError(null), 4000)
+    return () => clearTimeout(timer)
+  }, [favoriteError])
+
   const assignMealMutation = useMutation({
     mutationFn: api.createMealPlanItem,
     onSuccess: () => {
@@ -103,6 +139,7 @@ export default function RecipeDetailPage() {
   })
 
   const recipe = recipeQuery.data
+  const isFavorite = recipe?.isFavorite === true
   const ingredientCount = (recipe?.ingredients ?? []).length
   const stepCount = (recipe?.steps ?? []).length
   const showSourceOnlyDetail = Boolean(recipe && (ingredientCount === 0 || stepCount === 0))
@@ -136,6 +173,22 @@ export default function RecipeDetailPage() {
           </Button>
         }
         right={
+          <div className="flex items-center">
+          <button
+            type="button"
+            aria-pressed={isFavorite}
+            aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            aria-disabled={!recipe || favoriteMutation.isPending}
+            onClick={() => {
+              if (!recipe || favoriteMutation.isPending) return
+              favoriteMutation.mutate(!isFavorite)
+            }}
+            className={`flex size-11 flex-none items-center justify-center rounded-full transition hover:bg-sage-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-700 aria-disabled:opacity-60 ${
+              isFavorite ? 'text-rose-700' : 'text-sage-700'
+            }`}
+          >
+            <Heart size={22} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} />
+          </button>
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <Button clear small title="Actions">
@@ -168,8 +221,20 @@ export default function RecipeDetailPage() {
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Root>
+          </div>
         }
       />
+
+      {favoriteError ? (
+        <div
+          key={favoriteError.id}
+          role="alert"
+          className="fixed inset-x-4 bottom-(--bottom-nav-space) z-30 mx-auto max-w-lg rounded-2xl bg-sage-900 px-4 py-3 text-sm text-white shadow-[0_12px_32px_rgba(15,23,42,0.24)]"
+        >
+          <div className="font-semibold">Favori non enregistré</div>
+          <div className="text-sage-300">{getFavoriteErrorMessage(favoriteError.error)}</div>
+        </div>
+      ) : null}
 
       {recipeQuery.isLoading ? (
         <Block className="flex items-center justify-center gap-2 py-8 text-sm text-gray-600">

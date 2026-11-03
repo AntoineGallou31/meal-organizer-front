@@ -226,6 +226,17 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify(payload),
   })),
+  setRecipeFavorite: async (id, isFavorite) => {
+    const recipe = await apiRequest(`/api/recipes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ isFavorite }),
+    })
+    // Un backend sans favoris ne renvoie pas `isFavorite`
+    if (typeof recipe?.isFavorite !== 'boolean') {
+      throw new Error('Les favoris ne sont pas encore disponibles')
+    }
+    return normalizeRecipe(recipe)
+  },
   deleteRecipe: (id) => apiRequest(`/api/recipes/${id}`, {
     method: 'DELETE',
   }),
