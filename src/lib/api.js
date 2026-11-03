@@ -61,6 +61,35 @@ function normalizeRecipeListResponse(data) {
   }
 }
 
+// `preview_images` et `season_count` n'existent qu'avec un backend à jour
+function normalizeCategory(category) {
+  return {
+    ...category,
+    recipe_count: Number.isInteger(category?.recipe_count) ? category.recipe_count : 0,
+    preview_images: Array.isArray(category?.preview_images)
+      ? category.preview_images.filter((url) => typeof url === 'string' && url !== '').slice(0, 3)
+      : [],
+    season_count: Number.isInteger(category?.season_count) ? category.season_count : null,
+  }
+}
+
+function toCount(value) {
+  return Number.isInteger(value) && value >= 0 ? value : null
+}
+
+function normalizeRecipeStats(data) {
+  if (toCount(data?.total) == null) {
+    throw new Error('Statistiques des recettes indisponibles')
+  }
+
+  return {
+    total: data.total,
+    seasonal: toCount(data.seasonal),
+    favorites: toCount(data.favorites),
+    toComplete: toCount(data.toComplete),
+  }
+}
+
 function normalizeMealPlanDays(data) {
   const normalizeMealPlanItem = (item) => {
     if (!item) return item
@@ -175,7 +204,17 @@ export const api = {
     const data = await apiRequest(`/api/recipes${toQueryString(filters)}`)
     return Array.isArray(data) ? data.map(normalizeRecipe) : data
   },
-  getRecipesPage: async (filters = {}) => normalizeRecipeListResponse(await apiRequest(`/api/recipes${toQueryString(filters)}`)),
+  getRecipesPage: async (filters = {}) => {
+    const result = normalizeRecipeListResponse(await apiRequest(`/api/recipes${toQueryString(filters)}`))
+
+    // Un backend sans favoris ignore `favorite` et renverrait toutes les recettes
+    if (filters.favorite && result.items.some((recipe) => typeof recipe.isFavorite !== 'boolean')) {
+      return { ...result, items: [], hasMore: false, favoritesUnsupported: true }
+    }
+
+    return result
+  },
+  getRecipeStats: async () => normalizeRecipeStats(await apiRequest('/api/recipes/stats')),
   getRecipeSuggestions: async (filters = {}) =>
     normalizeRecipeListResponse(await apiRequest(`/api/recipes/suggestions${toQueryString(filters)}`)),
   getRecipeById: async (id) => normalizeRecipe(await apiRequest(`/api/recipes/${id}`)),
@@ -200,7 +239,10 @@ export const api = {
     })
     return normalizeRecipe(result)
   },
-  getCategories: (withCount = true) => apiRequest(`/api/categories${toQueryString({ withCount })}`),
+  getCategories: async (withCount = true) => {
+    const data = await apiRequest(`/api/categories${toQueryString({ withCount })}`)
+    return Array.isArray(data) ? data.map(normalizeCategory) : []
+  },
   createCategory: (payload) => apiRequest('/api/categories', {
     method: 'POST',
     body: JSON.stringify(payload),

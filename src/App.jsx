@@ -4,6 +4,7 @@ import CalendarPage from './pages/CalendarPage'
 import RecipeFormPage from './pages/RecipeFormPage'
 import ImportRecipePage from './pages/ImportRecipePage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
+import RecipeFolderPage from './pages/RecipeFolderPage'
 import RecipesPage from './pages/RecipesPage'
 import ShareTargetPage from './pages/ShareTargetPage'
 
@@ -17,6 +18,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/recipes" element={<RecipesPage />} />
+          <Route path="/recipes/folder/:folderId" element={<RecipeFolderPage />} />
           <Route path="/recipes/new" element={<RecipeFormPage />} />
           <Route path="/recipes/import" element={<ImportRecipePage />} />
           <Route path="/share-target" element={<ShareTargetPage />} />
