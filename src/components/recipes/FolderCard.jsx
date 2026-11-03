@@ -1,16 +1,27 @@
 import clsx from 'clsx'
 import { Leaf } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import useFolderPreviews from '../../hooks/useFolderPreviews'
+import useInView from '../../hooks/useInView'
 import { formatRecipeCount, FROM_FOLDERS_STATE } from '../../lib/recipes'
 import CoverImage from './CoverImage'
 import { FOCUS_RING } from './styles'
 
-// Carte en forme de dossier : un onglet blanc collé au corps, une ombre commune sur le lien
+function PreviewTile({ loading, src, color, showIcon }) {
+  if (loading) return <span className="block size-full animate-pulse bg-sage-100" />
+  return <CoverImage src={src} color={color} iconSize={24} showIcon={showIcon} />
+}
+
+// Carte en forme de dossier : un onglet blanc collé au corps, une ombre commune sur le lien.
+// L'aperçu montre les photos des premières recettes du dossier.
 export default function FolderCard({ folder, to, onNavigate }) {
-  const [first, second, third] = folder.preview_images ?? []
+  const [ref, inView] = useInView()
+  const { images, isLoading } = useFolderPreviews(folder, inView)
+  const [first, second, third] = images
 
   return (
     <Link
+      ref={ref}
       to={to}
       state={FROM_FOLDERS_STATE}
       onClick={onNavigate}
@@ -24,13 +35,13 @@ export default function FolderCard({ folder, to, onNavigate }) {
           className="grid h-[104px] grid-cols-[minmax(0,2fr)_minmax(0,1fr)] grid-rows-2 gap-[3px] overflow-hidden rounded-xl"
         >
           <span className="row-span-2 min-h-0">
-            <CoverImage src={first} color={folder.color} iconSize={24} />
+            <PreviewTile loading={isLoading} src={first} color={folder.color} showIcon />
           </span>
           <span className="min-h-0">
-            <CoverImage src={second} color={folder.color} showIcon={false} />
+            <PreviewTile loading={isLoading} src={second} color={folder.color} showIcon={false} />
           </span>
           <span className="min-h-0">
-            <CoverImage src={third} color={folder.color} showIcon={false} />
+            <PreviewTile loading={isLoading} src={third} color={folder.color} showIcon={false} />
           </span>
         </span>
 
