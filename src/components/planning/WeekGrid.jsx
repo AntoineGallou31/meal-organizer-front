@@ -9,9 +9,8 @@ const ROW_GRID = 'grid grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)] gap-2'
 export default function WeekGrid({ days, loading = false, onOpenSlot }) {
   const today = dayjs()
 
-  // Les lignes se partagent la hauteur disponible ; une ligne chargée garde la hauteur de son contenu
   return (
-    <section aria-label="Repas de la semaine" aria-busy={loading} className="flex flex-1 flex-col gap-1 px-4 pt-3.5">
+    <section aria-label="Repas de la semaine" aria-busy={loading} className="flex flex-col gap-1 px-4 pt-3.5">
       <div className={clsx(ROW_GRID, 'px-1.5 pb-0.5')}>
         <span />
         {SLOTS.map((slot) => (
@@ -30,7 +29,7 @@ export default function WeekGrid({ days, loading = false, onOpenSlot }) {
           <div
             key={day.date}
             aria-current={isToday ? 'date' : undefined}
-            className={clsx(ROW_GRID, 'flex-1 items-stretch rounded-[18px] px-1.5 py-[5px]', isToday && 'bg-terracotta-50')}
+            className={clsx(ROW_GRID, 'items-stretch rounded-[18px] px-1.5 py-[5px]', isToday && 'bg-terracotta-50')}
           >
             <div className="flex flex-col items-center justify-center gap-0.5">
               <span className={clsx('text-[11px]/[14px] font-medium', isToday ? 'text-terracotta-700' : 'text-sage-500')}>

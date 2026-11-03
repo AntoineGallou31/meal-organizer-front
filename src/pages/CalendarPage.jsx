@@ -133,30 +133,26 @@ export default function CalendarPage() {
 
   return (
     <div className="mx-auto w-full max-w-xl">
-      {/* La semaine occupe toute la hauteur jusqu'à la barre de navigation : les lignes s'étirent */}
-      <div className="flex min-h-[calc(100dvh-var(--bottom-nav-space))] flex-col">
-        <WeekHeader
-          week={currentWeek}
-          isCurrentWeek={isCurrentWeek}
-          onPrevious={() => goToWeek(currentWeek.subtract(1, 'week'))}
-          onNext={() => goToWeek(currentWeek.add(1, 'week'))}
-          onToday={() => goToWeek(dayjs())}
-        />
+      <WeekHeader
+        week={currentWeek}
+        isCurrentWeek={isCurrentWeek}
+        onPrevious={() => goToWeek(currentWeek.subtract(1, 'week'))}
+        onNext={() => goToWeek(currentWeek.add(1, 'week'))}
+        onToday={() => goToWeek(dayjs())}
+      />
 
-        {mealPlanQuery.isError ? (
-          <div className="px-4 pt-3.5">
-            <ErrorState
-              message={`Impossible de charger le planning. ${mealPlanQuery.error?.message ?? ''}`.trim()}
-              onRetry={() => mealPlanQuery.refetch()}
-            />
-          </div>
-        ) : (
-          <WeekGrid days={days} loading={mealPlanQuery.isPending} onOpenSlot={openSheet} />
-        )}
-      </div>
+      {mealPlanQuery.isError ? (
+        <div className="px-4 pt-3.5">
+          <ErrorState
+            message={`Impossible de charger le planning. ${mealPlanQuery.error?.message ?? ''}`.trim()}
+            onRetry={() => mealPlanQuery.refetch()}
+          />
+        </div>
+      ) : (
+        <WeekGrid days={days} loading={mealPlanQuery.isPending} onOpenSlot={openSheet} />
+      )}
 
-      {/* Laisse défiler la dernière ligne au-dessus du bandeau tant qu'il est affiché,
-          sans réduire la grille (les lignes ne changent pas de taille) */}
+      {/* Laisse défiler la dernière ligne au-dessus du bandeau tant qu'il est affiché */}
       {notice && !sheetTarget ? <div aria-hidden="true" className="h-20" /> : null}
 
       <MealSheet
