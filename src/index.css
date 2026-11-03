@@ -63,9 +63,6 @@
 @layer base {
   :root {
     color-scheme: light;
-    --app-bg-start: #ffffff;
-    --app-bg-mid: #f8fafc;
-    --app-bg-end: #eef2f7;
     /* Espace réservé sous les pages : barre de navigation (64 px + zone de sécurité,
        20 px minimum) et 12 px d'écart */
     --bottom-nav-space: calc(76px + max(20px, env(safe-area-inset-bottom)));
@@ -73,10 +70,7 @@
 
   html {
     min-height: 100%;
-    background:
-      radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 34%),
-      radial-gradient(circle at top right, rgba(148, 163, 184, 0.18), transparent 28%),
-      linear-gradient(180deg, var(--app-bg-start), var(--app-bg-mid) 48%, var(--app-bg-end));
+    background: var(--color-sage-50);
   }
 
   body {
