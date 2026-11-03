@@ -7,5 +7,8 @@ export const MENU_CONTENT_CLASS =
 export const MENU_ITEM_CLASS =
   'flex h-11 cursor-pointer select-none items-center gap-3 rounded-xl px-3 text-sm font-medium text-sage-900 outline-none data-[highlighted]:bg-sage-100 data-[disabled]:cursor-default data-[disabled]:opacity-50'
 
+// Carte blanche des recettes, même ombre que les cartes dossier
+export const CARD_CLASS = 'rounded-2xl bg-white shadow-[0_4px_10px_rgba(15,23,42,0.07)]'
+
 export const ROUND_BUTTON_CLASS =
   'flex size-11 flex-none items-center justify-center rounded-full border border-sage-200 bg-white text-sage-700 transition hover:bg-sage-100'

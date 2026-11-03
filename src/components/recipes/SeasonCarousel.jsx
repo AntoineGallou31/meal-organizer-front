@@ -6,7 +6,7 @@ import { api } from '../../lib/api'
 import { formatRecipeMeta } from '../../lib/mealPlan'
 import { pickFallbackColor } from '../../lib/recipes'
 import CoverImage from './CoverImage'
-import { FOCUS_RING } from './styles'
+import { CARD_CLASS, FOCUS_RING } from './styles'
 
 const IDEAS_COUNT = 6
 
@@ -24,23 +24,24 @@ export default function SeasonCarousel({ slotLabel, onPick, disabled }) {
   if (suggestionsQuery.isError || (suggestionsQuery.isSuccess && ideas.length === 0)) return null
 
   return (
-    <section aria-labelledby={titleId} className="pt-[18px]">
+    // La marge négative compense le bas du carrousel, gardé libre pour l'ombre des cartes
+    <section aria-labelledby={titleId} className="-mb-3 pt-[18px]">
       <h2 id={titleId} className="mx-4 mb-2.5 flex items-center gap-1.5 text-[13px]/[18px] font-semibold text-lime-800">
         <Leaf size={14} aria-hidden="true" />
         Idées de saison
       </h2>
 
       {suggestionsQuery.isPending ? (
-        <div aria-hidden="true" className="flex gap-3 overflow-hidden px-4">
+        <div aria-hidden="true" className="flex gap-3 overflow-hidden px-4 pt-0.5 pb-3">
           {Array.from({ length: 3 }, (_, index) => (
-            <div key={index} className="flex w-[140px] flex-none flex-col gap-2">
-              <div className="h-[100px] animate-pulse rounded-[14px] bg-sage-100" />
-              <div className="h-4 w-3/4 animate-pulse rounded bg-sage-100" />
+            <div key={index} className={clsx('flex w-[152px] flex-none flex-col gap-2 p-1.5 pb-2.5', CARD_CLASS)}>
+              <div className="h-[100px] animate-pulse rounded-xl bg-sage-100" />
+              <div className="mx-1 h-4 w-3/4 animate-pulse rounded bg-sage-100" />
             </div>
           ))}
         </div>
       ) : (
-        <ul className="flex gap-3 overflow-x-auto px-4 pt-0.5 pb-1">
+        <ul className="flex gap-3 overflow-x-auto px-4 pt-0.5 pb-3">
           {ideas.map((recipe) => {
             const meta = formatRecipeMeta(recipe)
             return (
@@ -51,11 +52,12 @@ export default function SeasonCarousel({ slotLabel, onPick, disabled }) {
                   disabled={disabled}
                   onClick={() => onPick(recipe)}
                   className={clsx(
-                    'flex w-[140px] cursor-pointer flex-col gap-2 rounded-[14px] text-left text-sage-900 disabled:cursor-default disabled:opacity-60',
+                    'flex h-full w-[152px] cursor-pointer flex-col gap-2 p-1.5 pb-2.5 text-left text-sage-900 disabled:cursor-default disabled:opacity-60',
+                    CARD_CLASS,
                     FOCUS_RING,
                   )}
                 >
-                  <span className="relative block h-[100px] w-[140px] overflow-hidden rounded-[14px]">
+                  <span className="relative block h-[100px] w-[140px] overflow-hidden rounded-xl">
                     <CoverImage src={recipe.imageUrl} color={pickFallbackColor(recipe.id)} iconSize={22} />
                     <span
                       aria-hidden="true"
@@ -64,7 +66,7 @@ export default function SeasonCarousel({ slotLabel, onPick, disabled }) {
                       <Plus size={16} strokeWidth={2.4} />
                     </span>
                   </span>
-                  <span className="flex flex-col gap-px">
+                  <span className="flex flex-col gap-px px-1">
                     <span className="line-clamp-2 text-[13px]/[17px] font-medium">{recipe.title}</span>
                     {meta ? <span className="text-xs text-sage-500">{meta}</span> : null}
                   </span>

@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
+import clsx from 'clsx'
 import ErrorState from '../ErrorState'
 import useInfiniteScroll from '../../hooks/useInfiniteScroll'
 import RecipeCard from './RecipeCard'
+import { CARD_CLASS } from './styles'
 
 const SKELETON_COUNT = 4
 
@@ -10,9 +12,9 @@ function ResultsSkeleton() {
     <div role="status" className="grid grid-cols-2 gap-x-3 gap-y-4">
       <span className="sr-only">Chargement des recettes…</span>
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-        <div key={index} aria-hidden="true" className="flex flex-col gap-2">
-          <div className="h-[118px] animate-pulse rounded-2xl bg-sage-100" />
-          <div className="h-4 w-3/4 animate-pulse rounded bg-sage-100" />
+        <div key={index} aria-hidden="true" className={clsx('flex flex-col gap-2 p-1.5 pb-2.5', CARD_CLASS)}>
+          <div className="h-[118px] animate-pulse rounded-xl bg-sage-100" />
+          <div className="mx-1 h-4 w-3/4 animate-pulse rounded bg-sage-100" />
         </div>
       ))}
     </div>
