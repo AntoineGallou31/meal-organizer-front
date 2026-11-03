@@ -87,6 +87,7 @@ function normalizeRecipeStats(data) {
     seasonal: toCount(data.seasonal),
     favorites: toCount(data.favorites),
     toComplete: toCount(data.toComplete),
+    suggestions: toCount(data.suggestions),
   }
 }
 

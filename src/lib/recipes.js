@@ -30,7 +30,7 @@ export const SPECIAL_FOLDERS = {
     id: 'suggestions',
     name: 'Suggestions',
     color: '#c2410c',
-    statKey: null,
+    statKey: 'suggestions',
     description: 'Plats de saison, pas au menu récemment',
   },
   saison: { id: 'saison', name: 'De saison', color: '#3f6212', statKey: 'seasonal' },
