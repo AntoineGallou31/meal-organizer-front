@@ -14,7 +14,7 @@ export default function WeekGrid({ days, loading = false, onOpenSlot }) {
       <div className={clsx(ROW_GRID, 'px-1.5 pb-0.5')}>
         <span />
         {SLOTS.map((slot) => (
-          <span key={slot.key} className="text-[11px]/4 font-semibold uppercase tracking-[0.06em] text-sage-500">
+          <span key={slot.key} className="text-xs/4 font-semibold uppercase tracking-[0.06em] text-sage-500">
             {slot.label}
           </span>
         ))}
@@ -32,15 +32,15 @@ export default function WeekGrid({ days, loading = false, onOpenSlot }) {
             className={clsx(ROW_GRID, 'items-stretch rounded-[18px] px-1.5 py-[5px]', isToday && 'bg-terracotta-50')}
           >
             <div className="flex flex-col items-center justify-center gap-0.5">
-              <span className={clsx('text-[11px]/[14px] font-medium', isToday ? 'text-terracotta-700' : 'text-sage-500')}>
+              <span className={clsx('text-xs/[15px] font-medium', isToday ? 'text-terracotta-700' : 'text-sage-500')}>
                 {getDayLabel(day.date)}
               </span>
               {isToday ? (
-                <span className="flex size-8 items-center justify-center rounded-full bg-terracotta-700 text-base font-semibold text-white">
+                <span className="flex size-8 items-center justify-center rounded-full bg-terracotta-700 text-lg font-semibold text-white">
                   {date.format('D')}
                 </span>
               ) : (
-                <span className={clsx('flex h-8 items-center text-lg font-semibold', isPast ? 'text-sage-500' : 'text-sage-900')}>
+                <span className={clsx('flex h-8 items-center text-xl font-semibold', isPast ? 'text-sage-500' : 'text-sage-900')}>
                   {date.format('D')}
                 </span>
               )}

@@ -36,18 +36,18 @@ export default function MealCell({ items, label, onOpen }) {
       {visibleRecipes.map((item) => (
         <span key={item.id} className="flex min-w-0 items-center gap-1.5">
           <RecipeThumb recipe={item.recipe} iconSize={13} iconStrokeWidth={2.2} className="size-[26px] rounded-[7px]" />
-          <span className="line-clamp-2 min-w-0 break-words text-xs/[15px] font-medium">{getItemLabel(item)}</span>
+          <span className="line-clamp-3 min-w-0 break-words hyphens-auto text-[13px]/[17px] font-medium">{getItemLabel(item)}</span>
         </span>
       ))}
 
       {hiddenCount > 0 ? (
-        <span className="pl-8 text-xs/[15px] font-medium text-sage-500">+{hiddenCount}</span>
+        <span className="pl-8 text-[13px]/[17px] font-medium text-sage-500">+{hiddenCount}</span>
       ) : null}
 
       {notes.map((item) => (
         <span key={item.id} className="flex min-w-0 items-start gap-[5px] rounded-lg bg-amber-100 px-[7px] py-[5px] text-amber-900">
-          <PencilLine size={12} aria-hidden="true" className="mt-0.5 flex-none" />
-          <span className="line-clamp-3 min-w-0 whitespace-pre-line break-words text-xs/[15px]">{item.note}</span>
+          <PencilLine size={13} aria-hidden="true" className="mt-0.5 flex-none" />
+          <span className="line-clamp-3 min-w-0 whitespace-pre-line break-words text-[13px]/[17px]">{item.note}</span>
         </span>
       ))}
     </button>
